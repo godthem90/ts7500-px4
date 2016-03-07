@@ -109,7 +109,7 @@ endif
 # describe how to build a cmake config
 define cmake-build
 +@if [ $(PX4_CMAKE_GENERATOR) = "Ninja" ] && [ -e $(PWD)/build_$@/Makefile ]; then rm -rf $(PWD)/build_$@; fi
-+@if [ ! -e $(PWD)/build_$@/CMakeCache.txt ]; then mkdir -p $(PWD)/build_$@ && cd $(PWD)/build_$@ && cmake .. -G$(PX4_CMAKE_GENERATOR) -DCONFIG=$(1); fi
++@if [ ! -e $(PWD)/build_$@/CMakeCache.txt ]; then echo "mkdir -p $(PWD)/build_$@" && mkdir -p $(PWD)/build_$@ && echo "cd $(PWD)/build_$@" && cd $(PWD)/build_$@ && echo "cmake .. -G$(PX4_CMAKE_GENERATOR) -DCONFIG=$(1)" && cmake .. -G$(PX4_CMAKE_GENERATOR) -DCONFIG=$(1); fi
 +Tools/check_submodules.sh
 +$(PX4_MAKE) -C $(PWD)/build_$@ $(PX4_MAKE_ARGS) $(ARGS)
 endef
@@ -179,6 +179,9 @@ posix_rpi2_default:
 posix_rpi2_release:
 	$(call cmake-build,$@)
 
+posix_ts7500_release:
+	$(call cmake-build,$@)
+
 posix: posix_sitl_default
 
 sitl_deprecation:
@@ -196,9 +199,6 @@ check_format:
 
 clean:
 	@rm -rf build_*/
-#	@(cd NuttX && git clean -d -f -x)
-#	@(cd src/modules/uavcan/libuavcan && git clean -d -f -x)
-#	@(git submodule sync --recursive)
 
 # targets handled by cmake
 cmake_targets = test upload package package_source debug debug_tui debug_ddd debug_io debug_io_tui debug_io_ddd check_weak \

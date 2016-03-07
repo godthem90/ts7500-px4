@@ -497,10 +497,10 @@ function(px4_add_common_flags)
 		#-Wshadow # very verbose due to eigen
 		-Wfloat-equal
 		-Wpointer-arith
-		-Wmissing-declarations
+		#-Wmissing-declarations
 		-Wno-unused-parameter
 		-Werror=format-security
-		-Werror=array-bounds
+		#-Werror=array-bounds
 		-Wfatal-errors
 		-Werror=unused-variable
 		-Werror=reorder
@@ -528,11 +528,11 @@ function(px4_add_common_flags)
 		endif()
 	else()
 		list(APPEND warnings
-			-Werror=unused-but-set-variable
+			#-Werror=unused-but-set-variable
 			-Wformat=1
 			#-Wlogical-op # very verbose due to eigen
-			-Wdouble-promotion
-			-Werror=double-promotion
+			#-Wdouble-promotion
+			#-Werror=double-promotion
 		)
 	endif()
 
@@ -598,7 +598,7 @@ function(px4_add_common_flags)
 		-g
 		-fno-exceptions
 		-fno-rtti
-		-std=gnu++0x
+		-std=c++98
 		-fno-threadsafe-statics
 		-DCONFIG_WCHAR_BUILTIN
 		-D__CUSTOM_FILE_IO__
