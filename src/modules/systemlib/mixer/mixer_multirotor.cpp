@@ -120,65 +120,65 @@ MultirotorMixer::from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handl
 
 		} else {
 			debug("simple parser rejected: No newline / space at end of buf. (#%d/%d: 0x%02x)", i, buflen - 1, buf[i]);
-			return nullptr;
+			return NULL;
 		}
 
 	}
 
 	if (sscanf(buf, "R: %s %d %d %d %d%n", geomname, &s[0], &s[1], &s[2], &s[3], &used) != 5) {
 		debug("multirotor parse failed on '%s'", buf);
-		return nullptr;
+		return NULL;
 	}
 
 	if (used > (int)buflen) {
 		debug("OVERFLOW: multirotor spec used %d of %u", used, buflen);
-		return nullptr;
+		return NULL;
 	}
 
 	buf = skipline(buf, buflen);
 
-	if (buf == nullptr) {
+	if (buf == NULL) {
 		debug("no line ending, line is incomplete");
-		return nullptr;
+		return NULL;
 	}
 
 	debug("remaining in buf: %d, first char: %c", buflen, buf[0]);
 
 	if (!strcmp(geomname, "4+")) {
-		geometry = MultirotorGeometry::QUAD_PLUS;
+		geometry = QUAD_PLUS;
 
 	} else if (!strcmp(geomname, "4x")) {
-		geometry = MultirotorGeometry::QUAD_X;
+		geometry = QUAD_X;
 
 	} else if (!strcmp(geomname, "4h")) {
-		geometry = MultirotorGeometry::QUAD_H;
+		geometry = QUAD_H;
 
 	} else if (!strcmp(geomname, "4v")) {
-		geometry = MultirotorGeometry::QUAD_V;
+		geometry = QUAD_V;
 
 	} else if (!strcmp(geomname, "4w")) {
-		geometry = MultirotorGeometry::QUAD_WIDE;
+		geometry = QUAD_WIDE;
 
 	} else if (!strcmp(geomname, "4dc")) {
-		geometry = MultirotorGeometry::QUAD_DEADCAT;
+		geometry = QUAD_DEADCAT;
 
 	} else if (!strcmp(geomname, "6+")) {
-		geometry = MultirotorGeometry::HEX_PLUS;
+		geometry = HEX_PLUS;
 
 	} else if (!strcmp(geomname, "6x")) {
-		geometry = MultirotorGeometry::HEX_X;
+		geometry = HEX_X;
 
 	} else if (!strcmp(geomname, "6c")) {
-		geometry = MultirotorGeometry::HEX_COX;
+		geometry = HEX_COX;
 
 	} else if (!strcmp(geomname, "8+")) {
-		geometry = MultirotorGeometry::OCTA_PLUS;
+		geometry = OCTA_PLUS;
 
 	} else if (!strcmp(geomname, "8x")) {
-		geometry = MultirotorGeometry::OCTA_X;
+		geometry = OCTA_X;
 
 	} else if (!strcmp(geomname, "8c")) {
-		geometry = MultirotorGeometry::OCTA_COX;
+		geometry = OCTA_COX;
 
 #if 0
 
@@ -187,14 +187,14 @@ MultirotorMixer::from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handl
 #endif
 
 	} else if (!strcmp(geomname, "2-")) {
-		geometry = MultirotorGeometry::TWIN_ENGINE;
+		geometry = TWIN_ENGINE;
 
 	} else if (!strcmp(geomname, "3y")) {
-		geometry = MultirotorGeometry::TRI_Y;
+		geometry = TRI_Y;
 
 	} else {
 		debug("unrecognised geometry '%s'", geomname);
-		return nullptr;
+		return NULL;
 	}
 
 	debug("adding multirotor mixer '%s'", geomname);

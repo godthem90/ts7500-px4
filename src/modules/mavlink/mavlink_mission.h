@@ -133,7 +133,7 @@ private:
 
 	bool _verbose;
 
-	static constexpr unsigned int	FILESYSTEM_ERRCOUNT_NOTIFY_LIMIT = 2;	///< Error count limit before stopping to report FS errors
+	static const unsigned int	FILESYSTEM_ERRCOUNT_NOTIFY_LIMIT = 2;	///< Error count limit before stopping to report FS errors
 
 	/* do not allow top copying this class */
 	MavlinkMissionManager(MavlinkMissionManager &);

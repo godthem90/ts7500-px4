@@ -84,8 +84,8 @@ public:
 	 * initializes elements to zero
 	 */
 	VectorBase() :
-		data{},
-		arm_col{N, 1, &data[0]}
+		data(),
+		arm_col(N, 1, &data[0])
 	{
 
 	}
@@ -96,7 +96,7 @@ public:
 	 * copy ctor
 	 */
 	VectorBase(const VectorBase<N> &v) :
-		arm_col{N, 1, &data[0]}
+		arm_col(N, 1, &data[0])
 	{
 		memcpy(data, v.data, sizeof(data));
 	}
@@ -105,7 +105,7 @@ public:
 	 * setting ctor
 	 */
 	VectorBase(const float d[N]) :
-		arm_col{N, 1, &data[0]}
+		arm_col(N, 1, &data[0])
 	{
 		memcpy(data, d, sizeof(data));
 	}
@@ -491,7 +491,7 @@ template <>
 class __EXPORT Vector<4> : public VectorBase<4>
 {
 public:
-	Vector() : VectorBase() {}
+	Vector() { VectorBase<4>(); }
 
 	Vector(const Vector<4> &v) : VectorBase<4>() {
 		for (unsigned int i = 0; i < 4; i++)
@@ -503,7 +503,8 @@ public:
 			data[i] = d[i];
 	}
 
-	Vector(const float x0, const float x1, const float x2, const float x3) : VectorBase() {
+	Vector(const float x0, const float x1, const float x2, const float x3) {
+		VectorBase<4>();
 		data[0] = x0;
 		data[1] = x1;
 		data[2] = x2;

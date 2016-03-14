@@ -91,9 +91,9 @@ static void *entry_adapter(void *ptr)
 	int rv;
 	// set the threads name
 #ifdef __PX4_DARWIN
-	rv = pthread_setname_np(data->name);
+	rv = prctl(PR_SET_NAME, data->name);
 #else
-	rv = pthread_setname_np(pthread_self(), data->name);
+	rv = prctl(PR_SET_NAME, data->name);
 #endif
 
 	if (rv) {
@@ -393,9 +393,9 @@ int px4_prctl(int option, const char *arg2, unsigned pid)
 	case PR_SET_NAME:
 		// set the threads name
 #ifdef __PX4_DARWIN
-		rv = pthread_setname_np(arg2);
+		rv = prctl(PR_SET_NAME, arg2);
 #else
-		rv = pthread_setname_np(pthread_self(), arg2);
+		rv = prctl(PR_SET_NAME, arg2);
 #endif
 		break;
 

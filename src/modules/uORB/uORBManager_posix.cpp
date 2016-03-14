@@ -44,13 +44,13 @@
 
 
 //=========================  Static initializations =================
-uORB::Manager *uORB::Manager::_Instance = nullptr;
+uORB::Manager *uORB::Manager::_Instance = NULL;
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 uORB::Manager *uORB::Manager::get_instance()
 {
-	if (_Instance == nullptr) {
+	if (_Instance == NULL) {
 		_Instance = new uORB::Manager();
 	}
 
@@ -60,7 +60,7 @@ uORB::Manager *uORB::Manager::get_instance()
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 uORB::Manager::Manager()
-	: _comm_channel(nullptr)
+	: _comm_channel(NULL)
 {
 }
 
@@ -84,7 +84,7 @@ int uORB::Manager::orb_exists(const struct orb_metadata *meta, int instance)
 orb_advert_t uORB::Manager::orb_advertise(const struct orb_metadata *meta, const void *data)
 {
 	//warnx("orb_advertise meta = %p", meta);
-	return orb_advertise_multi(meta, data, nullptr, ORB_PRIO_DEFAULT);
+	return orb_advertise_multi(meta, data, NULL, ORB_PRIO_DEFAULT);
 }
 
 orb_advert_t uORB::Manager::orb_advertise_multi(const struct orb_metadata *meta, const void *data, int *instance,
@@ -100,7 +100,7 @@ orb_advert_t uORB::Manager::orb_advertise_multi(const struct orb_metadata *meta,
 
 	if (fd == ERROR) {
 		warnx("node_open as advertiser failed.");
-		return nullptr;
+		return NULL;
 	}
 
 	/* get the advertiser handle and close the node */
@@ -109,7 +109,7 @@ orb_advert_t uORB::Manager::orb_advertise_multi(const struct orb_metadata *meta,
 
 	if (result == ERROR) {
 		warnx("px4_ioctl ORBIOCGADVERTISER  failed. fd = %d", fd);
-		return nullptr;
+		return NULL;
 	}
 
 	/* the advertiser must perform an initial publish to initialise the object */
@@ -117,7 +117,7 @@ orb_advert_t uORB::Manager::orb_advertise_multi(const struct orb_metadata *meta,
 
 	if (result == ERROR) {
 		warnx("orb_publish failed");
-		return nullptr;
+		return NULL;
 	}
 
 	return advertiser;
@@ -125,13 +125,13 @@ orb_advert_t uORB::Manager::orb_advertise_multi(const struct orb_metadata *meta,
 
 int uORB::Manager::orb_subscribe(const struct orb_metadata *meta)
 {
-	return node_open(PUBSUB, meta, nullptr, false);
+	return node_open(PUBSUB, meta, NULL, false);
 }
 
 int uORB::Manager::orb_subscribe_multi(const struct orb_metadata *meta, unsigned instance)
 {
 	int inst = instance;
-	return node_open(PUBSUB, meta, nullptr, false, &inst);
+	return node_open(PUBSUB, meta, NULL, false, &inst);
 }
 
 int uORB::Manager::orb_unsubscribe(int fd)
@@ -239,7 +239,7 @@ int uORB::Manager::node_open
 	 * If meta is null, the object was not defined, i.e. it is not
 	 * known to the system.  We can't advertise/subscribe such a thing.
 	 */
-	if (nullptr == meta) {
+	if (NULL == meta) {
 		errno = ENOENT;
 		return ERROR;
 	}
@@ -247,7 +247,7 @@ int uORB::Manager::node_open
 	/*
 	 * Advertiser must publish an initial value.
 	 */
-	if (advertiser && (data == nullptr)) {
+	if (advertiser && (data == NULL)) {
 		errno = EINVAL;
 		return ERROR;
 	}
@@ -269,7 +269,7 @@ int uORB::Manager::node_open
 	fd = px4_open(path, (advertiser) ? PX4_F_WRONLY : PX4_F_RDONLY);
 
 	/* if we want to advertise and the node existed, we have to re-try again */
-	if ((fd >= 0) && (instance != nullptr) && (advertiser)) {
+	if ((fd >= 0) && (instance != NULL) && (advertiser)) {
 		/* close the fd, we want a new one */
 		px4_close(fd);
 
@@ -314,7 +314,7 @@ void uORB::Manager::set_uorb_communicator(uORBCommunicator::IChannel *channel)
 {
 	_comm_channel = channel;
 
-	if (_comm_channel != nullptr) {
+	if (_comm_channel != NULL) {
 		_comm_channel->register_handler(this);
 	}
 }
@@ -340,7 +340,7 @@ int16_t uORB::Manager::process_add_subscription(const char *messageName,
 		// get the node name.
 		uORB::DeviceNode *node = uORB::DeviceMaster::GetDeviceNode(nodepath);
 
-		if (node == nullptr) {
+		if (node == NULL) {
 			warnx("[posix-uORB::Manager::process_add_subscription(%d)]DeviceNode(%s) not created yet",
 			      __LINE__, messageName);
 
@@ -372,7 +372,7 @@ int16_t uORB::Manager::process_remove_subscription(
 		uORB::DeviceNode *node = uORB::DeviceMaster::GetDeviceNode(nodepath);
 
 		// get the node name.
-		if (node == nullptr) {
+		if (node == NULL) {
 			warnx("[posix-uORB::Manager::process_remove_subscription(%d)]Error No existing subscriber found for message: [%s]",
 			      __LINE__, messageName);
 
@@ -401,7 +401,7 @@ int16_t uORB::Manager::process_received_message(const char *messageName,
 		uORB::DeviceNode *node = uORB::DeviceMaster::GetDeviceNode(nodepath);
 
 		// get the node name.
-		if (node == nullptr) {
+		if (node == NULL) {
 			warnx("[uORB::Manager::process_received_message(%d)]Error No existing subscriber found for message: [%s] nodepath:[%s]",
 			      __LINE__, messageName, nodepath);
 

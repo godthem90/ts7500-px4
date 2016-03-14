@@ -76,7 +76,10 @@ public:
 	int info();
 
 private:
-	UnitTest() : pubsubtest_passed(false), pubsubtest_print(false) {}
+	UnitTest() : pubsubtest_passed(false), pubsubtest_print(false)
+	{
+		pubsubtest_res = OK;
+	}
 
 	// Disallow copy
 	UnitTest(const uORBTest::UnitTest &) {};
@@ -85,7 +88,7 @@ private:
 	//
 	bool pubsubtest_passed;
 	bool pubsubtest_print;
-	int pubsubtest_res = OK;
+	int pubsubtest_res;
 
 	int test_single();
 	int test_multi();

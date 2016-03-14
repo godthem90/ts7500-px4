@@ -45,7 +45,7 @@ px4_add_module(
 	PRIORITY "SCHED_PRIORITY_MAX-5"
 	STACK 1200
 	COMPILE_FLAGS
-		-Wno-type-limits
+		#-Wno-type-limits #jjh
 		-O3
 	SRCS
 		${SENSORS_SRCS}

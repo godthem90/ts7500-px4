@@ -49,7 +49,7 @@ public:
 		char *buf,
 		Flavor f,
 		const struct orb_metadata *meta,
-		int *instance = nullptr
+		int *instance = NULL
 	);
 
 	/**

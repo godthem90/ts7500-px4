@@ -47,7 +47,7 @@ int uORB::Utils::node_mkpath
 
 	unsigned index = 0;
 
-	if (instance != nullptr) {
+	if (instance != NULL) {
 		index = *instance;
 	}
 

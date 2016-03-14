@@ -82,7 +82,7 @@ extern "C" {
 			dev = (VDev *)(filemap[fd]->vdev);
 
 		} else {
-			dev = nullptr;
+			dev = NULL;
 		}
 
 		pthread_mutex_unlock(&filemutex);
@@ -132,7 +132,7 @@ extern "C" {
 				char thread_name[NAMELEN] = {};
 
 #ifndef __PX4_QURT
-				int nret = pthread_getname_np(pthread_self(), thread_name, NAMELEN);
+				int nret = prctl(PR_GET_NAME, thread_name);
 
 				if (nret || thread_name[0] == 0) {
 					PX4_WARN("failed getting thread name");
@@ -168,7 +168,7 @@ extern "C" {
 		if (dev) {
 			pthread_mutex_lock(&filemutex);
 			ret = dev->close(filemap[fd]);
-			filemap[fd] = nullptr;
+			filemap[fd] = NULL;
 			pthread_mutex_unlock(&filemutex);
 			PX4_DEBUG("px4_close fd = %d", fd);
 
@@ -265,7 +265,7 @@ extern "C" {
 		char thread_name[NAMELEN] = {};
 
 #ifndef __PX4_QURT
-		int nret = pthread_getname_np(pthread_self(), thread_name, NAMELEN);
+		int nret = prctl(PR_GET_NAME, thread_name);
 
 		if (nret || thread_name[0] == 0) {
 			PX4_WARN("failed getting thread name");
@@ -388,7 +388,7 @@ extern "C" {
 		}
 
 		VDev *dev = VDev::getDev(pathname);
-		return (dev != nullptr) ? 0 : -1;
+		return (dev != NULL) ? 0 : -1;
 	}
 
 	void px4_show_devices()

@@ -1,0 +1,12 @@
+1. friend -> friend class
+2. nullptr -> NULL
+* 3. member variable initillized in class -> initillize in constructor
+* 4. consturctor initillization list brace -> curl brace (src/lib/DriverFramework/framework/src/DevObj.cpp) with no memeber var 
+** 4. consturctor initillization list brace -> curl brace with member var
+* 5. WorkItems, DFManagedList constructor : calls constructor (temporary object?) in initialization list -> call constructor in the constructor
+* 6. pragma gcc diagnostic just delete
+* 7. pthread_setname_np -> prctl
+* 8. enum class -> enum
+* 8. enum redefine not allowed -> enum define just once
+* 9. explicit specilization in (namespace or class) -> specilization out of (namespace or class)
+* 10. constexpr -> const

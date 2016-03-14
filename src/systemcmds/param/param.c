@@ -461,11 +461,11 @@ do_set(const char *name, const char *val, bool fail_on_not_found)
 			/* convert string */
 			char *end;
 			float newval = strtod(val, &end);
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wfloat-equal"
+//#pragma GCC diagnostic push
+//#pragma GCC diagnostic ignored "-Wfloat-equal"
 
 			if (f != newval) {
-#pragma GCC diagnostic pop
+//#pragma GCC diagnostic pop
 				printf("%c %s: ",
 				       param_value_unsaved(param) ? '*' : (param_value_is_default(param) ? ' ' : '+'),
 				       param_name(param));

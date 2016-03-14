@@ -129,11 +129,11 @@ public:
 	SubscriptionNode(const struct orb_metadata *meta,
 			 unsigned interval = 0,
 			 int instance = 0,
-			 List<SubscriptionNode *> *list = nullptr) :
+			 List<SubscriptionNode *> *list = NULL) :
 		SubscriptionBase(meta, interval, instance),
 		_interval(interval)
 	{
-		if (list != nullptr) { list->add(this); }
+		if (list != NULL) { list->add(this); }
 	}
 
 	/**
@@ -170,7 +170,7 @@ public:
 	Subscription(const struct orb_metadata *meta,
 		     unsigned interval = 0,
 		     int instance = 0,
-		     List<SubscriptionNode *> *list = nullptr);
+		     List<SubscriptionNode *> *list = NULL);
 
 	/**
 	 * Deconstructor

@@ -93,7 +93,7 @@ VDev::VDev(const char *name,
 	PX4_DEBUG("VDev::VDev");
 
 	for (unsigned i = 0; i < _max_pollwaiters; i++) {
-		_pollset[i] = nullptr;
+		_pollset[i] = NULL;
 	}
 }
 
@@ -111,7 +111,7 @@ VDev::register_class_devname(const char *class_devname)
 {
 	PX4_DEBUG("VDev::register_class_devname %s", class_devname);
 
-	if (class_devname == nullptr) {
+	if (class_devname == NULL) {
 		return -EINVAL;
 	}
 
@@ -239,7 +239,7 @@ VDev::init()
 	}
 
 	// now register the driver
-	if (_devname != nullptr) {
+	if (_devname != NULL) {
 		ret = register_driver(_devname, (void *)this);
 
 		if (ret != PX4_OK) {
@@ -438,7 +438,7 @@ VDev::poll_notify(pollevent_t events)
 	lock();
 
 	for (unsigned i = 0; i < _max_pollwaiters; i++)
-		if (nullptr != _pollset[i]) {
+		if (NULL != _pollset[i]) {
 			poll_notify_one(_pollset[i], events);
 		}
 
@@ -481,7 +481,7 @@ VDev::store_poll_waiter(px4_pollfd_struct_t *fds)
 	PX4_DEBUG("VDev::store_poll_waiter");
 
 	for (unsigned i = 0; i < _max_pollwaiters; i++) {
-		if (nullptr == _pollset[i]) {
+		if (NULL == _pollset[i]) {
 
 			/* save the pollfd */
 			_pollset[i] = fds;
@@ -501,7 +501,7 @@ VDev::remove_poll_waiter(px4_pollfd_struct_t *fds)
 	for (unsigned i = 0; i < _max_pollwaiters; i++) {
 		if (fds == _pollset[i]) {
 
-			_pollset[i] = nullptr;
+			_pollset[i] = NULL;
 			return PX4_OK;
 
 		}

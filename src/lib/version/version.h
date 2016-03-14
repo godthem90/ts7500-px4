@@ -74,4 +74,8 @@
 #ifdef CONFIG_ARCH_BOARD_RPI2
 #define	HW_ARCH "LINUXTEST"
 #endif
+
+#ifdef CONFIG_ARCH_BOARD_TS7500
+#define	HW_ARCH "LINUXTEST"
+#endif
 #endif /* VERSION_H_ */

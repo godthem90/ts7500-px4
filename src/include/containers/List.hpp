@@ -37,13 +37,15 @@
  * A linked list.
  */
 
+#define NULL 0
+
 #pragma once
 
 template<class T>
 class __EXPORT ListNode
 {
 public:
-	ListNode() : _sibling(nullptr)
+	ListNode() : _sibling(NULL)
 	{
 	}
 	virtual ~ListNode() {};

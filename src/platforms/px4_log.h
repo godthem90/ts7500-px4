@@ -117,7 +117,9 @@ static inline void do_nothing(int level, ...)
 
 #else
 
+#ifndef __STDC_FORMAT_MACROS
 #define __STDC_FORMAT_MACROS
+#endif
 #include <inttypes.h>
 #include <stdint.h>
 #include <sys/cdefs.h>

@@ -48,7 +48,7 @@
 #include "mavlink_orb_subscription.h"
 
 MavlinkOrbSubscription::MavlinkOrbSubscription(const orb_id_t topic, int instance) :
-	next(nullptr),
+	next(NULL),
 	_topic(topic),
 	_instance(instance),
 	_fd(orb_subscribe_multi(_topic, instance)),

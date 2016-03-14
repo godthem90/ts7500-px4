@@ -43,7 +43,7 @@ px4_add_module(
 		-Wno-packed
 		-DMAVLINK_COMM_NUM_BUFFERS=4
 		-Wno-packed
-		-Wno-tautological-constant-out-of-range-compare
+		#-Wno-tautological-constant-out-of-range-compare #jjh
 		-Os
 	SRCS
 		mavlink.c

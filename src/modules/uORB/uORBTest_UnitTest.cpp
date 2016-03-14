@@ -179,7 +179,7 @@ int uORBTest::UnitTest::test_single()
 	t.val = 0;
 	ptopic = orb_advertise(ORB_ID(orb_test), &t);
 
-	if (ptopic == nullptr) {
+	if (ptopic == NULL) {
 		return test_fail("advertise failed: %d", errno);
 	}
 

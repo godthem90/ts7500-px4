@@ -119,7 +119,7 @@ public:
 	 */
 	PublicationNode(const struct orb_metadata *meta,
 			int priority = -1,
-			List<PublicationNode *> *list = nullptr);
+			List<PublicationNode *> *list = NULL);
 
 	/**
 	 * This function is the callback for list traversal
@@ -147,7 +147,7 @@ public:
 	 */
 	Publication(const struct orb_metadata *meta,
 		    int priority = -1,
-		    List<PublicationNode *> *list = nullptr)  :
+		    List<PublicationNode *> *list = NULL)  :
 		PublicationNode(meta, priority, list),
 		_data()
 	{

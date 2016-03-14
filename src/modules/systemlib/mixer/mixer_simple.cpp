@@ -67,7 +67,7 @@ SimpleMixer::SimpleMixer(ControlCallback control_cb,
 
 SimpleMixer::~SimpleMixer()
 {
-	if (_info != nullptr) {
+	if (_info != NULL) {
 		free(_info);
 	}
 }
@@ -81,7 +81,7 @@ SimpleMixer::parse_output_scaler(const char *buf, unsigned &buflen, mixer_scaler
 
 	buf = findtag(buf, buflen, 'O');
 
-	if ((buf == nullptr) || (buflen < 12)) {
+	if ((buf == NULL) || (buflen < 12)) {
 		debug("output parser failed finding tag, ret: '%s'", buf);
 		return -1;
 	}
@@ -94,7 +94,7 @@ SimpleMixer::parse_output_scaler(const char *buf, unsigned &buflen, mixer_scaler
 
 	buf = skipline(buf, buflen);
 
-	if (buf == nullptr) {
+	if (buf == NULL) {
 		debug("no line ending, line is incomplete");
 		return -1;
 	}
@@ -117,7 +117,7 @@ SimpleMixer::parse_control_scaler(const char *buf, unsigned &buflen, mixer_scale
 
 	buf = findtag(buf, buflen, 'S');
 
-	if ((buf == nullptr) || (buflen < 16)) {
+	if ((buf == NULL) || (buflen < 16)) {
 		debug("control parser failed finding tag, ret: '%s'", buf);
 		return -1;
 	}
@@ -130,7 +130,7 @@ SimpleMixer::parse_control_scaler(const char *buf, unsigned &buflen, mixer_scale
 
 	buf = skipline(buf, buflen);
 
-	if (buf == nullptr) {
+	if (buf == NULL) {
 		debug("no line ending, line is incomplete");
 		return -1;
 	}
@@ -149,8 +149,8 @@ SimpleMixer::parse_control_scaler(const char *buf, unsigned &buflen, mixer_scale
 SimpleMixer *
 SimpleMixer::from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handle, const char *buf, unsigned &buflen)
 {
-	SimpleMixer *sm = nullptr;
-	mixer_simple_s *mixinfo = nullptr;
+	SimpleMixer *sm = NULL;
+	mixer_simple_s *mixinfo = NULL;
 	unsigned inputs;
 	int used;
 	const char *end = buf + buflen;
@@ -163,14 +163,14 @@ SimpleMixer::from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handle, c
 
 	buf = skipline(buf, buflen);
 
-	if (buf == nullptr) {
+	if (buf == NULL) {
 		debug("no line ending, line is incomplete");
 		goto out;
 	}
 
 	mixinfo = (mixer_simple_s *)malloc(MIXER_SIMPLE_SIZE(inputs));
 
-	if (mixinfo == nullptr) {
+	if (mixinfo == NULL) {
 		debug("could not allocate memory for mixer info");
 		goto out;
 	}
@@ -195,8 +195,8 @@ SimpleMixer::from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handle, c
 
 	sm = new SimpleMixer(control_cb, cb_handle, mixinfo);
 
-	if (sm != nullptr) {
-		mixinfo = nullptr;
+	if (sm != NULL) {
+		mixinfo = NULL;
 		debug("loaded mixer with %d input(s)", inputs);
 
 	} else {
@@ -205,7 +205,7 @@ SimpleMixer::from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handle, c
 
 out:
 
-	if (mixinfo != nullptr) {
+	if (mixinfo != NULL) {
 		free(mixinfo);
 	}
 
@@ -216,12 +216,12 @@ SimpleMixer *
 SimpleMixer::pwm_input(Mixer::ControlCallback control_cb, uintptr_t cb_handle, unsigned input, uint16_t min,
 		       uint16_t mid, uint16_t max)
 {
-	SimpleMixer *sm = nullptr;
-	mixer_simple_s *mixinfo = nullptr;
+	SimpleMixer *sm = NULL;
+	mixer_simple_s *mixinfo = NULL;
 
 	mixinfo = (mixer_simple_s *)malloc(MIXER_SIMPLE_SIZE(1));
 
-	if (mixinfo == nullptr) {
+	if (mixinfo == NULL) {
 		debug("could not allocate memory for mixer info");
 		goto out;
 	}
@@ -257,8 +257,8 @@ SimpleMixer::pwm_input(Mixer::ControlCallback control_cb, uintptr_t cb_handle, u
 
 	sm = new SimpleMixer(control_cb, cb_handle, mixinfo);
 
-	if (sm != nullptr) {
-		mixinfo = nullptr;
+	if (sm != NULL) {
+		mixinfo = NULL;
 		debug("PWM input mixer for %d", input);
 
 	} else {
@@ -267,7 +267,7 @@ SimpleMixer::pwm_input(Mixer::ControlCallback control_cb, uintptr_t cb_handle, u
 
 out:
 
-	if (mixinfo != nullptr) {
+	if (mixinfo != NULL) {
 		free(mixinfo);
 	}
 
@@ -279,7 +279,7 @@ SimpleMixer::mix(float *outputs, unsigned space, uint16_t *status_reg)
 {
 	float		sum = 0.0f;
 
-	if (_info == nullptr) {
+	if (_info == NULL) {
 		return 0;
 	}
 

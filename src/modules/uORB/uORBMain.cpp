@@ -42,7 +42,7 @@
 
 extern "C" { __EXPORT int uorb_main(int argc, char *argv[]); }
 
-static uORB::DeviceMaster *g_dev = nullptr;
+static uORB::DeviceMaster *g_dev = NULL;
 static void usage()
 {
 	PX4_INFO("Usage: uorb 'start', 'test', 'latency_test' or 'status'");
@@ -64,7 +64,7 @@ uorb_main(int argc, char *argv[])
 	 */
 	if (!strcmp(argv[1], "start")) {
 
-		if (g_dev != nullptr) {
+		if (g_dev != NULL) {
 			PX4_WARN("already loaded");
 			/* user wanted to start uorb, its already running, no error */
 			return 0;
@@ -73,7 +73,7 @@ uorb_main(int argc, char *argv[])
 		/* create the driver */
 		g_dev = new uORB::DeviceMaster(uORB::PUBSUB);
 
-		if (g_dev == nullptr) {
+		if (g_dev == NULL) {
 			PX4_ERR("driver alloc failed");
 			return -ENOMEM;
 		}
@@ -81,7 +81,7 @@ uorb_main(int argc, char *argv[])
 		if (OK != g_dev->init()) {
 			PX4_ERR("driver init failed");
 			delete g_dev;
-			g_dev = nullptr;
+			g_dev = NULL;
 			return -EIO;
 		}
 
@@ -122,7 +122,7 @@ uorb_main(int argc, char *argv[])
 	 * Print driver information.
 	 */
 	if (!strcmp(argv[1], "status")) {
-		if (g_dev != nullptr) {
+		if (g_dev != NULL) {
 			PX4_INFO("uorb is running");
 
 		} else {

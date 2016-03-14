@@ -495,12 +495,12 @@ function(px4_add_common_flags)
 		-Wextra
 		-Wno-sign-compare
 		#-Wshadow # very verbose due to eigen
-		-Wfloat-equal
+		#-Wfloat-equal #jjh
 		-Wpointer-arith
-		#-Wmissing-declarations
+		#-Wmissing-declarations #jjh
 		-Wno-unused-parameter
 		-Werror=format-security
-		#-Werror=array-bounds
+		#-Werror=array-bounds #jjh
 		-Wfatal-errors
 		-Werror=unused-variable
 		-Werror=reorder
@@ -528,11 +528,11 @@ function(px4_add_common_flags)
 		endif()
 	else()
 		list(APPEND warnings
-			#-Werror=unused-but-set-variable
+			#-Werror=unused-but-set-variable #jjh
 			-Wformat=1
 			#-Wlogical-op # very verbose due to eigen
-			#-Wdouble-promotion
-			#-Werror=double-promotion
+			#-Wdouble-promotion #jjh
+			#-Werror=double-promotion #jjh
 		)
 	endif()
 
@@ -579,8 +579,8 @@ function(px4_add_common_flags)
 
 	if (NOT ${CMAKE_C_COMPILER_ID} MATCHES ".*Clang.*")
 		list(APPEND c_warnings
-			-Wold-style-declaration
-			-Wmissing-parameter-type
+			#-Wold-style-declaration #jjh
+			#-Wmissing-parameter-type #jjh
 		)
 	endif()
 

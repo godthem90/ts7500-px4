@@ -60,7 +60,7 @@
 
 MixerGroup::MixerGroup(ControlCallback control_cb, uintptr_t cb_handle) :
 	Mixer(control_cb, cb_handle),
-	_first(nullptr)
+	_first(NULL)
 {
 }
 
@@ -76,12 +76,12 @@ MixerGroup::add_mixer(Mixer *mixer)
 
 	mpp = &_first;
 
-	while (*mpp != nullptr) {
+	while (*mpp != NULL) {
 		mpp = &((*mpp)->_next);
 	}
 
 	*mpp = mixer;
-	mixer->_next = nullptr;
+	mixer->_next = NULL;
 }
 
 void
@@ -90,11 +90,11 @@ MixerGroup::reset()
 	Mixer *mixer;
 
 	/* discard sub-mixers */
-	while (_first != nullptr) {
+	while (_first != NULL) {
 		mixer = _first;
 		_first = mixer->_next;
 		delete mixer;
-		mixer = nullptr;
+		mixer = NULL;
 	}
 }
 
@@ -104,7 +104,7 @@ MixerGroup::mix(float *outputs, unsigned space, uint16_t *status_reg)
 	Mixer	*mixer = _first;
 	unsigned index = 0;
 
-	while ((mixer != nullptr) && (index < space)) {
+	while ((mixer != NULL) && (index < space)) {
 		index += mixer->mix(outputs + index, space - index, status_reg);
 		mixer = mixer->_next;
 	}
@@ -118,7 +118,7 @@ MixerGroup::count()
 	Mixer	*mixer = _first;
 	unsigned index = 0;
 
-	while ((mixer != nullptr)) {
+	while ((mixer != NULL)) {
 		mixer = mixer->_next;
 		index++;
 	}
@@ -131,7 +131,7 @@ MixerGroup::groups_required(uint32_t &groups)
 {
 	Mixer	*mixer = _first;
 
-	while (mixer != nullptr) {
+	while (mixer != NULL) {
 		mixer->groups_required(groups);
 		mixer = mixer->_next;
 	}
@@ -148,7 +148,7 @@ MixerGroup::load_from_buf(const char *buf, unsigned &buflen)
 	 * allocate something when we expected to.
 	 */
 	while (buflen > 0) {
-		Mixer *m = nullptr;
+		Mixer *m = NULL;
 		const char *p = end - buflen;
 		unsigned resid = buflen;
 
@@ -177,7 +177,7 @@ MixerGroup::load_from_buf(const char *buf, unsigned &buflen)
 		/*
 		 * If we constructed something, add it to the group.
 		 */
-		if (m != nullptr) {
+		if (m != NULL) {
 			add_mixer(m);
 
 			/* we constructed something */

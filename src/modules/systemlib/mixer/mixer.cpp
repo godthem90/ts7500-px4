@@ -56,7 +56,7 @@
 #include "mixer.h"
 
 Mixer::Mixer(ControlCallback control_cb, uintptr_t cb_handle) :
-	_next(nullptr),
+	_next(NULL),
 	_control_cb(control_cb),
 	_cb_handle(cb_handle)
 {
@@ -133,7 +133,7 @@ Mixer::findtag(const char *buf, unsigned &buflen, char tag)
 		buflen--;
 	}
 
-	return nullptr;
+	return NULL;
 }
 
 const char *
@@ -148,13 +148,13 @@ Mixer::skipline(const char *buf, unsigned &buflen)
 		return p + 1;
 	}
 
-	return nullptr;
+	return NULL;
 }
 
 /****************************************************************************/
 
 NullMixer::NullMixer() :
-	Mixer(nullptr, 0)
+	Mixer(NULL, 0)
 {
 }
 
@@ -178,7 +178,7 @@ NullMixer::groups_required(uint32_t &groups)
 NullMixer *
 NullMixer::from_text(const char *buf, unsigned &buflen)
 {
-	NullMixer *nm = nullptr;
+	NullMixer *nm = NULL;
 
 	/* enforce that the mixer ends with space or a new line */
 	for (int i = buflen - 1; i >= 0; i--) {

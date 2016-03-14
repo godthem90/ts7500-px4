@@ -62,13 +62,13 @@ PublicationBase::PublicationBase(const struct orb_metadata *meta,
 	_meta(meta),
 	_priority(priority),
 	_instance(),
-	_handle(nullptr)
+	_handle(NULL)
 {
 }
 
 void PublicationBase::update(void *data)
 {
-	if (_handle != nullptr) {
+	if (_handle != NULL) {
 		int ret = orb_publish(getMeta(), getHandle(), data);
 
 		if (ret != PX4_OK) { warnx("publish fail"); }
@@ -103,7 +103,7 @@ PublicationNode::PublicationNode(const struct orb_metadata *meta,
 				 List<PublicationNode *> *list) :
 	PublicationBase(meta, priority)
 {
-	if (list != nullptr) { list->add(this); }
+	if (list != NULL) { list->add(this); }
 }
 
 // explicit template instantiation

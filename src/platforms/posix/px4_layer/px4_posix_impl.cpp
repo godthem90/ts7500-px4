@@ -100,9 +100,9 @@ void init(int argc, char *argv[], const char *app_name)
 
 	// set the threads name
 #ifdef __PX4_DARWIN
-	(void)pthread_setname_np(app_name);
+	(void)prctl(PR_SET_NAME, app_name);
 #else
-	(void)pthread_setname_np(pthread_self(), app_name);
+	(void)prctl(PR_SET_NAME, app_name);
 #endif
 }
 

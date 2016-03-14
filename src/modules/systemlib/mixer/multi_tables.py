@@ -193,7 +193,7 @@ def unpackScales(scalesList):
     return scalesList
 
 def printEnum():
-    print("enum class MultirotorGeometry : MultirotorGeometryUnderlyingType {")
+    print("MultirotorGeometry {")
     for table in tables:
         print("\t{},".format(variableName(table).upper()))
 
@@ -224,8 +224,8 @@ def printScaleTablesCounts():
     print("};\n")
 
 
-
-printEnum()
+# jjh delete - c++98 doesn't allow redefinition of enum class -> just declare in mixer.h. if you want to add config, also add in mixer.h
+#printEnum()
 
 print("namespace {")
 printScaleTables()

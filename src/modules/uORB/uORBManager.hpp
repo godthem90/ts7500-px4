@@ -83,11 +83,11 @@ public:
 	 * @param data    A pointer to the initial data to be published.
 	 *      For topics updated by interrupt handlers, the advertisement
 	 *      must be performed from non-interrupt context.
-	 * @return    nullptr on error, otherwise returns an object pointer
+	 * @return    NULL on error, otherwise returns an object pointer
 	 *      that can be used to publish to the topic.
 	 *      If the topic in question is not known (due to an
 	 *      ORB_DEFINE with no corresponding ORB_DECLARE)
-	 *      this function will return nullptr and set errno to ENOENT.
+	 *      this function will return NULL and set errno to ENOENT.
 	 */
 	orb_advert_t orb_advertise(const struct orb_metadata *meta, const void *data);
 
@@ -324,7 +324,7 @@ private: // class methods
 	node_advertise
 	(
 		const struct orb_metadata *meta,
-		int *instance = nullptr,
+		int *instance = NULL,
 		int priority = ORB_PRIO_DEFAULT
 	);
 
@@ -341,7 +341,7 @@ private: // class methods
 		const struct orb_metadata *meta,
 		const void *data,
 		bool advertiser,
-		int *instance = nullptr,
+		int *instance = NULL,
 		int priority = ORB_PRIO_DEFAULT
 	);
 

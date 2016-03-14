@@ -63,7 +63,7 @@ uORB::DeviceNode::SubscriberData  *uORB::DeviceNode::filp_to_sd(device::file_t *
 uORB::DeviceNode::DeviceNode(const struct orb_metadata *meta, const char *name, const char *path, int priority) :
 	VDev(name, path),
 	_meta(meta),
-	_data(nullptr),
+	_data(NULL),
 	_last_update(0),
 	_generation(0),
 	_publisher(0),
@@ -77,7 +77,7 @@ uORB::DeviceNode::DeviceNode(const struct orb_metadata *meta, const char *name, 
 
 uORB::DeviceNode::~DeviceNode()
 {
-	if (_data != nullptr) {
+	if (_data != NULL) {
 		delete[] _data;
 	}
 
@@ -123,7 +123,7 @@ uORB::DeviceNode::open(device::file_t *filp)
 		/* allocate subscriber data */
 		SubscriberData *sd = new SubscriberData;
 
-		if (nullptr == sd) {
+		if (NULL == sd) {
 			return -ENOMEM;
 		}
 
@@ -165,11 +165,11 @@ uORB::DeviceNode::close(device::file_t *filp)
 	} else {
 		SubscriberData *sd = filp_to_sd(filp);
 
-		if (sd != nullptr) {
+		if (sd != NULL) {
 			hrt_cancel(&sd->update_call);
 			remove_internal_subscriber();
 			delete sd;
-			sd = nullptr;
+			sd = NULL;
 		}
 	}
 
@@ -183,7 +183,7 @@ uORB::DeviceNode::read(device::file_t *filp, char *buffer, size_t buflen)
 	SubscriberData *sd = (SubscriberData *)filp_to_sd(filp);
 
 	/* if the object has not been written yet, return zero */
-	if (_data == nullptr) {
+	if (_data == NULL) {
 		return 0;
 	}
 
@@ -198,7 +198,7 @@ uORB::DeviceNode::read(device::file_t *filp, char *buffer, size_t buflen)
 	lock();
 
 	/* if the caller doesn't want the data, don't give it to them */
-	if (nullptr != buffer) {
+	if (NULL != buffer) {
 		memcpy(buffer, _data, _meta->o_size);
 	}
 
@@ -232,18 +232,18 @@ uORB::DeviceNode::write(device::file_t *filp, const char *buffer, size_t buflen)
 	 *
 	 * Note that filp will usually be NULL.
 	 */
-	if (nullptr == _data) {
+	if (NULL == _data) {
 		lock();
 
 		/* re-check size */
-		if (nullptr == _data) {
+		if (NULL == _data) {
 			_data = new uint8_t[_meta->o_size];
 		}
 
 		unlock();
 
 		/* failed or could not allocate */
-		if (nullptr == _data) {
+		if (NULL == _data) {
 			return -ENOMEM;
 		}
 	}
@@ -309,7 +309,7 @@ uORB::DeviceNode::publish(const orb_metadata *meta, orb_advert_t handle, const v
 {
 	//warnx("uORB::DeviceNode::publish meta = %p", meta);
 
-	if (handle == nullptr) {
+	if (handle == NULL) {
 		warnx("uORB::DeviceNode::publish called with invalid handle");
 		errno = EINVAL;
 		return ERROR;
@@ -325,7 +325,7 @@ uORB::DeviceNode::publish(const orb_metadata *meta, orb_advert_t handle, const v
 	}
 
 	/* call the devnode write method with no file pointer */
-	ret = devnode->write(nullptr, (const char *)data, meta->o_size);
+	ret = devnode->write(NULL, (const char *)data, meta->o_size);
 
 	if (ret < 0) {
 		return ERROR;
@@ -341,7 +341,7 @@ uORB::DeviceNode::publish(const orb_metadata *meta, orb_advert_t handle, const v
 	 */
 	uORBCommunicator::IChannel *ch = uORB::Manager::get_instance()->get_uorb_communicator();
 
-	if (ch != nullptr) {
+	if (ch != NULL) {
 		if (ch->send_message(meta->o_name, meta->o_size, (uint8_t *)data) != 0) {
 			warnx("[uORB::DeviceNode::publish(%d)]: Error Sending [%s] topic data over comm_channel",
 			      __LINE__, meta->o_name);
@@ -395,7 +395,7 @@ uORB::DeviceNode::appears_updated(SubscriberData *sd)
 	bool ret = false;
 
 	/* check if this topic has been published yet, if not bail out */
-	if (_data == nullptr) {
+	if (_data == NULL) {
 		ret = false;
 		goto out;
 	}
@@ -473,7 +473,7 @@ void uORB::DeviceNode::add_internal_subscriber()
 	_subscriber_count++;
 	uORBCommunicator::IChannel *ch = uORB::Manager::get_instance()->get_uorb_communicator();
 
-	if (ch != nullptr && _subscriber_count > 0) {
+	if (ch != NULL && _subscriber_count > 0) {
 		ch->add_subscription(_meta->o_name, 1);
 	}
 }
@@ -485,7 +485,7 @@ void uORB::DeviceNode::remove_internal_subscriber()
 	_subscriber_count--;
 	uORBCommunicator::IChannel *ch = uORB::Manager::get_instance()->get_uorb_communicator();
 
-	if (ch != nullptr && _subscriber_count == 0) {
+	if (ch != NULL && _subscriber_count == 0) {
 		ch->remove_subscription(_meta->o_name);
 	}
 }
@@ -507,7 +507,7 @@ int16_t uORB::DeviceNode::process_add_subscription(int32_t rateInHz)
 	// send the data to the remote entity.
 	uORBCommunicator::IChannel *ch = uORB::Manager::get_instance()->get_uorb_communicator();
 
-	if (_data != nullptr && ch != nullptr) { // _data will not be null if there is a publisher.
+	if (_data != NULL && ch != NULL) { // _data will not be null if there is a publisher.
 		ch->send_message(_meta->o_name, _meta->o_size, _data);
 	}
 
@@ -534,7 +534,7 @@ int16_t uORB::DeviceNode::process_received_message(int32_t length, uint8_t *data
 	}
 
 	/* call the devnode write method with no file pointer */
-	ret = write(nullptr, (const char *)data, _meta->o_size);
+	ret = write(NULL, (const char *)data, _meta->o_size);
 
 	if (ret < 0) {
 		return ERROR;
@@ -578,7 +578,7 @@ uORB::DeviceMaster::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 			uORB::DeviceNode *node;
 
 			/* set instance to zero - we could allow selective multi-pubs later based on value */
-			if (adv->instance != nullptr) {
+			if (adv->instance != NULL) {
 				*(adv->instance) = 0;
 			}
 
@@ -595,12 +595,12 @@ uORB::DeviceMaster::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 			ret = ERROR;
 
 			/* try for topic groups */
-			const unsigned max_group_tries = (adv->instance != nullptr) ? ORB_MULTI_MAX_INSTANCES : 1;
+			const unsigned max_group_tries = (adv->instance != NULL) ? ORB_MULTI_MAX_INSTANCES : 1;
 			unsigned group_tries = 0;
 
 			do {
 				/* if path is modifyable change try index */
-				if (adv->instance != nullptr) {
+				if (adv->instance != NULL) {
 					/* replace the number at the end of the string */
 					nodepath[strlen(nodepath) - 1] = '0' + group_tries;
 					*(adv->instance) = group_tries;
@@ -609,14 +609,14 @@ uORB::DeviceMaster::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 				/* driver wants a permanent copy of the node name, so make one here */
 				objname = strdup(meta->o_name);
 
-				if (objname == nullptr) {
+				if (objname == NULL) {
 					return -ENOMEM;
 				}
 
 				/* driver wants a permanent copy of the path, so make one here */
 				devpath = strdup(nodepath);
 
-				if (devpath == nullptr) {
+				if (devpath == NULL) {
 					// FIXME - looks like we leaked memory here for objname
 					return -ENOMEM;
 				}
@@ -625,7 +625,7 @@ uORB::DeviceMaster::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 				node = new uORB::DeviceNode(meta, objname, devpath, adv->priority);
 
 				/* if we didn't get a device, that's bad */
-				if (node == nullptr) {
+				if (node == NULL) {
 					unlock();
 
 					// FIXME - looks like we leaked memory here for devpath and objname
@@ -644,7 +644,7 @@ uORB::DeviceMaster::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 						 * something has been published yet. */
 						uORB::DeviceNode *existing_node = GetDeviceNode(devpath);
 
-						if ((existing_node != nullptr) && !(existing_node->is_published())) {
+						if ((existing_node != NULL) && !(existing_node->is_published())) {
 							/* nothing has been published yet, lets claim it */
 							ret = PX4_OK;
 
@@ -685,7 +685,7 @@ uORB::DeviceMaster::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 
 uORB::DeviceNode *uORB::DeviceMaster::GetDeviceNode(const char *nodepath)
 {
-	uORB::DeviceNode *rc = nullptr;
+	uORB::DeviceNode *rc = NULL;
 	std::string np(nodepath);
 
 	if (_node_map.find(np) != _node_map.end()) {
