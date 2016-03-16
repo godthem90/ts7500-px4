@@ -82,7 +82,7 @@ public:
         };
 	
 	/// @brief Command opcodes
-	enum Opcode : uint8_t
+	enum Opcode //: uint8_t
 	{
 		kCmdNone,		///< ignored, always acked
 		kCmdTerminateSession,	///< Terminates open Read session
