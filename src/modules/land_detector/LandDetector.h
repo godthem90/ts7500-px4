@@ -95,11 +95,11 @@ protected:
 	**/
 	bool orb_update(const struct orb_metadata *meta, int handle, void *buffer);
 
-	static constexpr uint32_t LAND_DETECTOR_UPDATE_RATE = 50;        /**< Run algorithm at 50Hz */
+	static const uint32_t LAND_DETECTOR_UPDATE_RATE = 50;        /**< Run algorithm at 50Hz */
 
-	static constexpr uint64_t LAND_DETECTOR_TRIGGER_TIME = 2000000;  /**< usec that landing conditions have to hold
+	static const uint64_t LAND_DETECTOR_TRIGGER_TIME = 2000000;  /**< usec that landing conditions have to hold
                                                                           before triggering a land */
-	static constexpr uint64_t LAND_DETECTOR_ARM_PHASE_TIME =
+	static const uint64_t LAND_DETECTOR_ARM_PHASE_TIME =
 		2000000;	/**< time interval in which wider acceptance thresholds are used after arming */
 
 protected:

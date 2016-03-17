@@ -61,11 +61,11 @@ void TailsitterRecovery::calcOptimalRates(math::Quaternion &q, math::Quaternion 
 	math::Matrix<3, 3> R = q.to_dcm();
 
 	// compute error quaternion
-	math::Quaternion q_sp_inv = {q_sp(0), -q_sp(1), -q_sp(2), -q_sp(3)};
+	math::Quaternion q_sp_inv(q_sp(0), -q_sp(1), -q_sp(2), -q_sp(3));
 	math::Quaternion q_error = q * q_sp_inv;
 
 	// compute tilt angle and corresponding tilt axis
-	math::Vector<3> zB = {0, 0, -1.0f};
+	math::Vector<3> zB(0, 0, -1.0f);
 
 	math::Vector<3> zI = q_error.conjugate(zB);
 
@@ -82,7 +82,7 @@ void TailsitterRecovery::calcOptimalRates(math::Quaternion &q, math::Quaternion 
 		tilt_angle = acosf(inner_prod);
 	}
 
-	math::Vector<3> tilt_axis = {0, 0, -1};
+	math::Vector<3> tilt_axis(0, 0, -1);
 
 	if (math::min(fabsf(tilt_angle), fabsf(tilt_angle - M_PI_F)) > 0.00001f) {
 		tilt_axis = zI % zB;

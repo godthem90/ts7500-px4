@@ -54,11 +54,11 @@ MulticopterLandDetector::MulticopterLandDetector() : LandDetector(),
 	_armingSub(-1),
 	_parameterSub(-1),
 	_attitudeSub(-1),
-	_vehicleGlobalPosition{},
-	_vehicleStatus{},
-	_actuators{},
-	_arming{},
-	_vehicleAttitude{},
+	_vehicleGlobalPosition(),
+	_vehicleStatus(),
+	_actuators(),
+	_arming(),
+	_vehicleAttitude(),
 	_landTimer(0)
 {
 	_paramHandle.maxRotation = param_find("LNDMC_ROT_MAX");

@@ -53,9 +53,9 @@ ORB_DEFINE(uavcan_parameter_value, struct uavcan_parameter_value_s);
 
 MavlinkParametersManager::MavlinkParametersManager(Mavlink *mavlink) : MavlinkStream(mavlink),
 	_send_all_index(-1),
-	_rc_param_map_pub(nullptr),
+	_rc_param_map_pub(NULL),
 	_rc_param_map(),
-	_uavcan_parameter_request_pub(nullptr),
+	_uavcan_parameter_request_pub(NULL),
 	_uavcan_parameter_value_sub(-1)
 {
 }
@@ -93,7 +93,7 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 				req.node_id = req_list.target_component;
 				req.param_index = 0;
 
-				if (_uavcan_parameter_request_pub == nullptr) {
+				if (_uavcan_parameter_request_pub == NULL) {
 					_uavcan_parameter_request_pub = orb_advertise(ORB_ID(uavcan_parameter_request), &req);
 				} else {
 					orb_publish(ORB_ID(uavcan_parameter_request), _uavcan_parameter_request_pub, &req);
@@ -157,7 +157,7 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 					req.int_value = val;
 				}
 
-				if (_uavcan_parameter_request_pub == nullptr) {
+				if (_uavcan_parameter_request_pub == NULL) {
 					_uavcan_parameter_request_pub = orb_advertise(ORB_ID(uavcan_parameter_request), &req);
 				} else {
 					orb_publish(ORB_ID(uavcan_parameter_request), _uavcan_parameter_request_pub, &req);
@@ -224,7 +224,7 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 				strncpy(req.param_id, req_read.param_id, MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN + 1);
 				req.param_id[MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN] = '\0';
 
-				if (_uavcan_parameter_request_pub == nullptr) {
+				if (_uavcan_parameter_request_pub == NULL) {
 					_uavcan_parameter_request_pub = orb_advertise(ORB_ID(uavcan_parameter_request), &req);
 				} else {
 					orb_publish(ORB_ID(uavcan_parameter_request), _uavcan_parameter_request_pub, &req);
@@ -259,7 +259,7 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 				}
 				_rc_param_map.timestamp = hrt_absolute_time();
 
-				if (_rc_param_map_pub == nullptr) {
+				if (_rc_param_map_pub == NULL) {
 					_rc_param_map_pub = orb_advertise(ORB_ID(rc_parameter_map), &_rc_param_map);
 
 				} else {

@@ -65,12 +65,12 @@ protected:
 	/**
 	* @brief Runs one iteration of the land detection algorithm
 	**/
-	virtual bool update() override;
+	virtual bool update();
 
 	/**
 	* @brief Initializes the land detection algorithm
 	**/
-	virtual void initialize() override;
+	virtual void initialize();
 
 	/**
 	* @brief download and update local parameter cache

@@ -134,7 +134,7 @@ static const int ERROR = -1;
 
 extern struct system_load_s system_load;
 
-static constexpr uint8_t COMMANDER_MAX_GPS_NOISE = 60;		/**< Maximum percentage signal to noise ratio allowed for GPS reception */
+static const uint8_t COMMANDER_MAX_GPS_NOISE = 60;		/**< Maximum percentage signal to noise ratio allowed for GPS reception */
 
 /* Decouple update interval and hysteris counters, all depends on intervals */
 #define COMMANDER_MONITORING_INTERVAL 50000
@@ -310,8 +310,8 @@ int commander_main(int argc, char *argv[])
 					     commander_thread_main,
 					     (char * const *)&argv[0]);
 
-		unsigned constexpr max_wait_us = 1000000;
-		unsigned constexpr max_wait_steps = 2000;
+		unsigned const max_wait_us = 1000000;
+		unsigned const max_wait_steps = 2000;
 
 		unsigned i;
 		for (i = 0; i < max_wait_steps; i++) {
@@ -896,7 +896,7 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 				mavlink_and_console_log_info(mavlink_fd, "Home position: %.7f, %.7f, %.2f", home->lat, home->lon, (double)home->alt);
 
 				/* announce new home position */
-				if (*home_pub != nullptr) {
+				if (*home_pub != NULL) {
 					orb_publish(ORB_ID(home_position), *home_pub, home);
 
 				} else {
@@ -1028,7 +1028,7 @@ static void commander_set_home_position(orb_advert_t &homePub, home_position_s &
 	PX4_INFO("home: %.7f, %.7f, %.2f", home.lat, home.lon, (double)home.alt);
 
 	/* announce new home position */
-	if (homePub != nullptr) {
+	if (homePub != NULL) {
 		orb_publish(ORB_ID(home_position), homePub, &home);
 
 	} else {
@@ -1205,7 +1205,7 @@ int commander_thread_main(int argc, char *argv[])
 	/* publish initial state */
 	status_pub = orb_advertise(ORB_ID(vehicle_status), &status);
 
-	if (status_pub == nullptr) {
+	if (status_pub == NULL) {
 		warnx("ERROR: orb_advertise for topic vehicle_status failed (uorb app running?).\n");
 		warnx("exiting.");
 		px4_task_exit(ERROR);
@@ -1221,16 +1221,16 @@ int commander_thread_main(int argc, char *argv[])
 	orb_advert_t control_mode_pub = orb_advertise(ORB_ID(vehicle_control_mode), &control_mode);
 
 	/* home position */
-	orb_advert_t home_pub = nullptr;
+	orb_advert_t home_pub = NULL;
 	memset(&_home, 0, sizeof(_home));
 
 	/* command ack */
-	orb_advert_t command_ack_pub = nullptr;
+	orb_advert_t command_ack_pub = NULL;
 	struct vehicle_command_ack_s command_ack;
 	memset(&command_ack, 0, sizeof(command_ack));
 
 	/* init mission state, do it here to allow navigator to use stored mission even if mavlink failed to start */
-	orb_advert_t mission_pub = nullptr;
+	orb_advert_t mission_pub = NULL;
 	mission_s mission;
 
 	if (dm_read(DM_KEY_MISSION_STATE, 0, &mission, sizeof(mission_s)) == sizeof(mission_s)) {
@@ -3270,7 +3270,7 @@ void answer_command(struct vehicle_command_s &cmd, unsigned result,
 	command_ack.command = cmd.command;
 	command_ack.result = result;
 
-	if (command_ack_pub != nullptr) {
+	if (command_ack_pub != NULL) {
 		orb_publish(ORB_ID(vehicle_command_ack), command_ack_pub, &command_ack);
 
 	} else {
@@ -3289,7 +3289,7 @@ void *commander_low_prio_loop(void *arg)
 	memset(&cmd, 0, sizeof(cmd));
 
 	/* command ack */
-	orb_advert_t command_ack_pub = nullptr;
+	orb_advert_t command_ack_pub = NULL;
 	struct vehicle_command_ack_s command_ack;
 	memset(&command_ack, 0, sizeof(command_ack));
 

@@ -71,6 +71,18 @@ VtolType::VtolType(VtolAttitudeControl *att_controller) :
 	_params = _attc->get_params();
 
 	flag_idle_mc = true;
+	_mc_roll_weight = 1.0f;	// weight for multicopter attitude controller roll output
+	_mc_pitch_weight = 1.0f;	// weight for multicopter attitude controller pitch output
+	_mc_yaw_weight = 1.0f;	// weight for multicopter attitude controller yaw output
+	_mc_throttle_weight = 1.0f;	// weight for multicopter throttle command. Used to avoid
+	// motors spinning up or cutting too fast whend doing transitions.
+	_thrust_transition = 0.0f;	// thrust value applied during a front transition (tailsitter & tiltrotor only)
+
+	_flag_was_in_trans_mode = false;	// true if mode has just switched to transition
+	_trans_finished_ts = 0;
+	_tecs_running = false;
+	_tecs_running_ts = 0;
+
 }
 
 VtolType::~VtolType()

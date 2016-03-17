@@ -55,10 +55,10 @@
 MissionFeasibilityChecker::MissionFeasibilityChecker() :
 	_mavlink_fd(-1),
 	_capabilities_sub(-1),
+	_nav_caps(),
 	_initDone(false),
 	_dist_1wp_ok(false)
 {
-	_nav_caps = {0};
 }
 
 

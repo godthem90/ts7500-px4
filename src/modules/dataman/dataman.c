@@ -52,6 +52,7 @@
 #include <string.h>
 #include <semaphore.h>
 #include <unistd.h>
+#include <sys/stat.h>
 
 #include "dataman.h"
 #include <systemlib/param/param.h>

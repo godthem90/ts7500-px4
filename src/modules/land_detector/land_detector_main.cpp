@@ -67,7 +67,7 @@ static void land_detector_stop();
 extern "C" __EXPORT int land_detector_main(int argc, char *argv[]);
 
 //Private variables
-static LandDetector *land_detector_task = nullptr;
+static LandDetector *land_detector_task = NULL;
 static char _currentMode[12];
 
 /**
@@ -75,7 +75,7 @@ static char _currentMode[12];
 **/
 static void land_detector_stop()
 {
-	if (land_detector_task == nullptr) {
+	if (land_detector_task == NULL) {
 		warnx("not running");
 		return;
 	}
@@ -93,7 +93,7 @@ static void land_detector_stop()
 
 
 	delete land_detector_task;
-	land_detector_task = nullptr;
+	land_detector_task = NULL;
 	warnx("land_detector has been stopped");
 }
 
@@ -102,7 +102,7 @@ static void land_detector_stop()
 **/
 static int land_detector_start(const char *mode)
 {
-	if (land_detector_task != nullptr) {
+	if (land_detector_task != NULL) {
 		warnx("already running");
 		return -1;
 	}
@@ -123,7 +123,7 @@ static int land_detector_start(const char *mode)
 	}
 
 	//Check if alloc worked
-	if (land_detector_task == nullptr) {
+	if (land_detector_task == NULL) {
 		warnx("alloc failed");
 		return -1;
 	}

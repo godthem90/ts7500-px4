@@ -83,11 +83,11 @@ VtolAttitudeControl::VtolAttitudeControl() :
 	_tecs_status_sub(-1),
 
 	//init publication handlers
-	_actuators_0_pub(nullptr),
-	_actuators_1_pub(nullptr),
-	_vtol_vehicle_status_pub(nullptr),
-	_v_rates_sp_pub(nullptr),
-	_v_att_sp_pub(nullptr)
+	_actuators_0_pub(NULL),
+	_actuators_1_pub(NULL),
+	_vtol_vehicle_status_pub(NULL),
+	_v_rates_sp_pub(NULL),
+	_v_att_sp_pub(NULL)
 
 {
 	memset(& _vtol_vehicle_status, 0, sizeof(_vtol_vehicle_status));
@@ -134,15 +134,15 @@ VtolAttitudeControl::VtolAttitudeControl() :
 	/* fetch initial parameter values */
 	parameters_update();
 
-	if (_params.vtol_type == vtol_type::TAILSITTER) {
+	if (_params.vtol_type == TAILSITTER) {
 		_tailsitter = new Tailsitter(this);
 		_vtol_type = _tailsitter;
 
-	} else if (_params.vtol_type == vtol_type::TILTROTOR) {
+	} else if (_params.vtol_type == TILTROTOR) {
 		_tiltrotor = new Tiltrotor(this);
 		_vtol_type = _tiltrotor;
 
-	} else if (_params.vtol_type == vtol_type::STANDARD) {
+	} else if (_params.vtol_type == STANDARD) {
 		_standard = new Standard(this);
 		_vtol_type = _standard;
 
@@ -175,7 +175,7 @@ VtolAttitudeControl::~VtolAttitudeControl()
 		} while (_control_task != -1);
 	}
 
-	VTOL_att_control::g_control = nullptr;
+	VTOL_att_control::g_control = NULL;
 }
 
 /**
@@ -574,7 +574,7 @@ void VtolAttitudeControl::fill_fw_att_rates_sp()
 
 void VtolAttitudeControl::publish_att_sp()
 {
-	if (_v_att_sp_pub != nullptr) {
+	if (_v_att_sp_pub != NULL) {
 		/* publish the attitude setpoint */
 		orb_publish(ORB_ID(vehicle_attitude_setpoint), _v_att_sp_pub, &_v_att_sp);
 
@@ -641,7 +641,7 @@ void VtolAttitudeControl::task_main()
 
 	while (!_task_should_exit) {
 		/*Advertise/Publish vtol vehicle status*/
-		if (_vtol_vehicle_status_pub != nullptr) {
+		if (_vtol_vehicle_status_pub != NULL) {
 			orb_publish(ORB_ID(vtol_vehicle_status), _vtol_vehicle_status_pub, &_vtol_vehicle_status);
 
 		} else {
@@ -782,14 +782,14 @@ void VtolAttitudeControl::task_main()
 		if (_v_control_mode.flag_control_attitude_enabled ||
 			_v_control_mode.flag_control_rates_enabled ||
 			_v_control_mode.flag_control_manual_enabled) {
-			if (_actuators_0_pub != nullptr) {
+			if (_actuators_0_pub != NULL) {
 				orb_publish(ORB_ID(actuator_controls_0), _actuators_0_pub, &_actuators_out_0);
 
 			} else {
 				_actuators_0_pub = orb_advertise(ORB_ID(actuator_controls_0), &_actuators_out_0);
 			}
 
-			if (_actuators_1_pub != nullptr) {
+			if (_actuators_1_pub != NULL) {
 				orb_publish(ORB_ID(actuator_controls_1), _actuators_1_pub, &_actuators_out_1);
 
 			} else {
@@ -798,7 +798,7 @@ void VtolAttitudeControl::task_main()
 		}
 
 		// publish the attitude rates setpoint
-		if (_v_rates_sp_pub != nullptr) {
+		if (_v_rates_sp_pub != NULL) {
 			orb_publish(ORB_ID(vehicle_rates_setpoint), _v_rates_sp_pub, &_v_rates_sp);
 
 		} else {
@@ -822,7 +822,7 @@ VtolAttitudeControl::start()
 					   SCHED_PRIORITY_MAX - 10,
 					   2048,
 					   (px4_main_t)&VtolAttitudeControl::task_main_trampoline,
-					   nullptr);
+					   NULL);
 
 	if (_control_task < 0) {
 		PX4_WARN("task start failed");
@@ -841,21 +841,21 @@ int vtol_att_control_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "start")) {
 
-		if (VTOL_att_control::g_control != nullptr) {
+		if (VTOL_att_control::g_control != NULL) {
 			PX4_WARN("already running");
 			return 0;
 		}
 
 		VTOL_att_control::g_control = new VtolAttitudeControl;
 
-		if (VTOL_att_control::g_control == nullptr) {
+		if (VTOL_att_control::g_control == NULL) {
 			PX4_WARN("alloc failed");
 			return 1;
 		}
 
 		if (OK != VTOL_att_control::g_control->start()) {
 			delete VTOL_att_control::g_control;
-			VTOL_att_control::g_control = nullptr;
+			VTOL_att_control::g_control = NULL;
 			PX4_WARN("start failed");
 			return 1;
 		}
@@ -864,13 +864,13 @@ int vtol_att_control_main(int argc, char *argv[])
 	}
 
 	if (!strcmp(argv[1], "stop")) {
-		if (VTOL_att_control::g_control == nullptr) {
+		if (VTOL_att_control::g_control == NULL) {
 			PX4_WARN("not running");
 			return 0;
 		}
 
 		delete VTOL_att_control::g_control;
-		VTOL_att_control::g_control = nullptr;
+		VTOL_att_control::g_control = NULL;
 		return 0;
 	}
 

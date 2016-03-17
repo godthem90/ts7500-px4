@@ -50,6 +50,7 @@
 #include "px4_middleware.h"
 #include "DriverFramework.hpp"
 #include <termios.h>
+#include <errno.h>
 
 namespace px4
 {
@@ -154,7 +155,8 @@ static void process_line(string &line, bool exit_on_fail)
 
 	vector<string> appargs(10);
 
-	stringstream(line) >> appargs[0] >> appargs[1] >> appargs[2] >> appargs[3] >> appargs[4] >> appargs[5] >> appargs[6] >>
+	stringstream jjh_tmp(line);
+	jjh_tmp >> appargs[0] >> appargs[1] >> appargs[2] >> appargs[3] >> appargs[4] >> appargs[5] >> appargs[6] >>
 			   appargs[7] >> appargs[8] >> appargs[9];
 	run_cmd(appargs, exit_on_fail);
 }
@@ -188,7 +190,7 @@ int main(int argc, char **argv)
 	sigaction(SIGFPE, &sig_fpe, NULL);
 
 	int index = 1;
-	char *commands_file = nullptr;
+	char *commands_file = NULL;
 
 	while (index < argc) {
 		if (argv[index][0] == '-') {
@@ -232,7 +234,7 @@ int main(int argc, char **argv)
 	px4::init(argc, argv, "mainapp");
 
 	// if commandfile is present, process the commands from the file
-	if (commands_file != nullptr) {
+	if (commands_file != NULL) {
 		ifstream infile(commands_file);
 
 		if (infile.is_open()) {
@@ -260,12 +262,12 @@ int main(int argc, char **argv)
 		char pwd_path[path_max_len];
 		const char *folderpath = "/rootfs/";
 
-		if (nullptr == getcwd(pwd_path, sizeof(pwd_path))) {
+		if (NULL == getcwd(pwd_path, sizeof(pwd_path))) {
 			PX4_ERR("Failed acquiring working dir, abort.");
 			exit(1);
 		}
 
-		if (nullptr == strcat(pwd_path, folderpath)) {
+		if (NULL == strcat(pwd_path, folderpath)) {
 			PX4_ERR("Failed completing path, abort.");
 			exit(1);
 		}
@@ -304,7 +306,7 @@ int main(int argc, char **argv)
 			switch (c) {
 			case 127:	// backslash
 				if (mystr.length() > 0) {
-					mystr.pop_back();
+					mystr.erase(mystr.end()-1);
 					printf("%c[2K", 27);	// clear line
 					cout << (char)13;
 					print_prompt();
@@ -386,11 +388,14 @@ int main(int argc, char **argv)
 	if (true) {
 		//if (px4_task_is_running("muorb")) {
 		// sending muorb stop is needed if it is running to exit cleanly
-		vector<string> muorb_stop_cmd = { "muorb", "stop" };
+		vector<string> muorb_stop_cmd;
+		muorb_stop_cmd.push_back("muorb");
+		muorb_stop_cmd.push_back("stop");
 		run_cmd(muorb_stop_cmd, !daemon_mode);
 	}
 
-	vector<string> shutdown_cmd = { "shutdown" };
+	vector<string> shutdown_cmd;
+	shutdown_cmd.push_back("shutdown");
 	run_cmd(shutdown_cmd, true);
 	DriverFramework::Framework::shutdown();
 

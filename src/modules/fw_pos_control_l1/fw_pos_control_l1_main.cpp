@@ -108,11 +108,11 @@ static int	_control_task = -1;			/**< task handle for sensor task */
 #define HDG_HOLD_MAN_INPUT_THRESH 	0.01f 		// max manual roll input from user which does not change the locked heading
 #define T_ALT_TIMEOUT 				1 			// time after which we abort landing if terrain estimate is not valid
 
-static constexpr float THROTTLE_THRESH =
+static const float THROTTLE_THRESH =
 	0.05f; 	///< max throttle from user which will not lead to motors spinning up in altitude controlled modes
-static constexpr float MANUAL_THROTTLE_CLIMBOUT_THRESH =
+static const float MANUAL_THROTTLE_CLIMBOUT_THRESH =
 	0.85f;	///< a throttle / pitch input above this value leads to the system switching to climbout mode
-static constexpr float ALTHOLD_EPV_RESET_THRESH = 5.0f;
+static const float ALTHOLD_EPV_RESET_THRESH = 5.0f;
 
 /**
  * L1 control app start / stop handling function
@@ -501,7 +501,7 @@ namespace l1_control
 #endif
 static const int ERROR = -1;
 
-FixedwingPositionControl	*g_control = nullptr;
+FixedwingPositionControl	*g_control = NULL;
 }
 
 FixedwingPositionControl::FixedwingPositionControl() :
@@ -521,9 +521,9 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_sensor_combined_sub(-1),
 
 	/* publications */
-	_attitude_sp_pub(nullptr),
-	_tecs_status_pub(nullptr),
-	_nav_capabilities_pub(nullptr),
+	_attitude_sp_pub(NULL),
+	_tecs_status_pub(NULL),
+	_nav_capabilities_pub(NULL),
 
 	/* publication ID */
 	_attitude_setpoint_id(0),
@@ -549,8 +549,8 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_yaw_lock_engaged(false),
 	_althold_epv(0.0f),
 	_was_in_deadband(false),
-	_hdg_hold_prev_wp{},
-	_hdg_hold_curr_wp{},
+	_hdg_hold_prev_wp(),
+	_hdg_hold_curr_wp(),
 	_control_position_last_called(0),
 
 	land_noreturn_horizontal(false),
@@ -586,7 +586,6 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_mTecs(),
 	_control_mode_current(FW_POSCTRL_MODE_OTHER)
 {
-	_nav_capabilities = {};
 
 	_parameter_handles.l1_period = param_find("FW_L1_PERIOD");
 	_parameter_handles.l1_damping = param_find("FW_L1_DAMPING");
@@ -660,7 +659,7 @@ FixedwingPositionControl::~FixedwingPositionControl()
 		} while (_control_task != -1);
 	}
 
-	l1_control::g_control = nullptr;
+	l1_control::g_control = NULL;
 }
 
 int
@@ -890,7 +889,7 @@ FixedwingPositionControl::task_main_trampoline(int argc, char *argv[])
 {
 	l1_control::g_control = new FixedwingPositionControl();
 
-	if (l1_control::g_control == nullptr) {
+	if (l1_control::g_control == NULL) {
 		warnx("OUT OF MEM");
 		return;
 	}
@@ -898,7 +897,7 @@ FixedwingPositionControl::task_main_trampoline(int argc, char *argv[])
 	/* only returns on exit */
 	l1_control::g_control->task_main();
 	delete l1_control::g_control;
-	l1_control::g_control = nullptr;
+	l1_control::g_control = NULL;
 }
 
 float
@@ -1001,7 +1000,7 @@ void FixedwingPositionControl::navigation_capabilities_publish()
 {
 	_nav_capabilities.timestamp = hrt_absolute_time();
 
-	if (_nav_capabilities_pub != nullptr) {
+	if (_nav_capabilities_pub != NULL) {
 		orb_publish(ORB_ID(navigation_capabilities), _nav_capabilities_pub, &_nav_capabilities);
 
 	} else {
@@ -1014,8 +1013,8 @@ void FixedwingPositionControl::get_waypoint_heading_distance(float heading, floa
 {
 	waypoint_prev.valid = true;
 	waypoint_prev.alt = _hold_alt;
-	position_setpoint_s temp_next {};
-	position_setpoint_s temp_prev {};
+	position_setpoint_s temp_next = {0};
+	position_setpoint_s temp_prev = {0};
 
 	if (flag_init) {
 		// on init set previous waypoint HDG_HOLD_SET_BACK_DIST meters behind us
@@ -1215,7 +1214,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 				   accel_body, accel_earth, (_global_pos.timestamp > 0), in_air_alt_control);
 	}
 
-	math::Vector<2> ground_speed_2d = {ground_speed(0), ground_speed(1)};
+	math::Vector<2> ground_speed_2d(ground_speed(0), ground_speed(1));
 	calculate_gndspeed_undershoot(current_position, ground_speed_2d, pos_sp_triplet);
 
 	/* define altitude error */
@@ -2149,7 +2148,7 @@ FixedwingPositionControl::task_main()
 				_att_sp.timestamp = hrt_absolute_time();
 
 				/* lazily publish the setpoint only once available */
-				if (_attitude_sp_pub != nullptr) {
+				if (_attitude_sp_pub != NULL) {
 					/* publish the attitude setpoint */
 					orb_publish(_attitude_setpoint_id, _attitude_sp_pub, &_att_sp);
 
@@ -2312,7 +2311,7 @@ void FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float v_
 
 		// if the vehicle is a tailsitter we have to rotate the attitude by the pitch offset
 		// between multirotor and fixed wing flight
-		if (_parameters.vtol_type == vtol_type::TAILSITTER && _vehicle_status.is_vtol) {
+		if (_parameters.vtol_type == TAILSITTER && _vehicle_status.is_vtol) {
 			math::Matrix<3,3> R_offset;
 			R_offset.from_euler(0, M_PI_2_F, 0);
 			math::Matrix<3,3> R_fixed_wing = _R_nb * R_offset;
@@ -2371,7 +2370,7 @@ void FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float v_
 		t.throttle_integ 	= s.throttle_integ;
 		t.pitch_integ 		= s.pitch_integ;
 
-		if (_tecs_status_pub != nullptr) {
+		if (_tecs_status_pub != NULL) {
 			orb_publish(ORB_ID(tecs_status), _tecs_status_pub, &t);
 
 		} else {
@@ -2391,7 +2390,7 @@ FixedwingPositionControl::start()
 					   SCHED_PRIORITY_MAX - 5,
 					   1700,
 					   (px4_main_t)&FixedwingPositionControl::task_main_trampoline,
-					   nullptr);
+					   NULL);
 
 	if (_control_task < 0) {
 		warn("task start failed");
@@ -2410,7 +2409,7 @@ int fw_pos_control_l1_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "start")) {
 
-		if (l1_control::g_control != nullptr) {
+		if (l1_control::g_control != NULL) {
 			warnx("already running");
 			return 1;
 		}
@@ -2421,7 +2420,7 @@ int fw_pos_control_l1_main(int argc, char *argv[])
 		}
 
 		/* avoid memory fragmentation by not exiting start handler until the task has fully started */
-		while (l1_control::g_control == nullptr || !l1_control::g_control->task_running()) {
+		while (l1_control::g_control == NULL || !l1_control::g_control->task_running()) {
 			usleep(50000);
 			printf(".");
 			fflush(stdout);
@@ -2433,13 +2432,13 @@ int fw_pos_control_l1_main(int argc, char *argv[])
 	}
 
 	if (!strcmp(argv[1], "stop")) {
-		if (l1_control::g_control == nullptr) {
+		if (l1_control::g_control == NULL) {
 			warnx("not running");
 			return 1;
 		}
 
 		delete l1_control::g_control;
-		l1_control::g_control = nullptr;
+		l1_control::g_control = NULL;
 		return 0;
 	}
 

@@ -63,8 +63,8 @@ static const int ERROR = -1;
 
 Geofence::Geofence() :
 	SuperBlock(NULL, "GF"),
-	_fence_pub(nullptr),
-	_home_pos{},
+	_fence_pub(NULL),
+	_home_pos(),
 	_home_pos_set(false),
 	_last_horizontal_range_warning(0),
 	_last_vertical_range_warning(0),
@@ -303,7 +303,7 @@ Geofence::addPoint(int argc, char *argv[])
 void
 Geofence::publishFence(unsigned vertices)
 {
-	if (_fence_pub == nullptr) {
+	if (_fence_pub == NULL) {
 		_fence_pub = orb_advertise(ORB_ID(fence), &vertices);
 
 	} else {

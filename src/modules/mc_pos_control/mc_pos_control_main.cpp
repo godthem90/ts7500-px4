@@ -360,9 +360,9 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_global_vel_sp_sub(-1),
 
 	/* publications */
-	_att_sp_pub(nullptr),
-	_local_pos_sp_pub(nullptr),
-	_global_vel_sp_pub(nullptr),
+	_att_sp_pub(NULL),
+	_local_pos_sp_pub(NULL),
+	_global_vel_sp_pub(NULL),
 	_attitude_setpoint_id(0),
 	_manual_thr_min(this, "MANTHR_MIN"),
 	_manual_thr_max(this, "MANTHR_MAX"),
@@ -477,7 +477,7 @@ MulticopterPositionControl::~MulticopterPositionControl()
 		} while (_control_task != -1);
 	}
 
-	pos_control::g_control = nullptr;
+	pos_control::g_control = NULL;
 }
 
 int
@@ -1313,7 +1313,7 @@ MulticopterPositionControl::task_main()
 				_att_sp.timestamp = hrt_absolute_time();
 
 				/* publish attitude setpoint */
-				if (_att_sp_pub != nullptr) {
+				if (_att_sp_pub != NULL) {
 					orb_publish(_attitude_setpoint_id, _att_sp_pub, &_att_sp);
 
 				} else if (_attitude_setpoint_id) {
@@ -1341,7 +1341,7 @@ MulticopterPositionControl::task_main()
 				_att_sp.timestamp = hrt_absolute_time();
 
 				/* publish attitude setpoint */
-				if (_att_sp_pub != nullptr) {
+				if (_att_sp_pub != NULL) {
 					orb_publish(_attitude_setpoint_id, _att_sp_pub, &_att_sp);
 
 				} else if (_attitude_setpoint_id) {
@@ -1471,7 +1471,7 @@ MulticopterPositionControl::task_main()
 				_global_vel_sp.vz = _vel_sp(2);
 
 				/* publish velocity setpoint */
-				if (_global_vel_sp_pub != nullptr) {
+				if (_global_vel_sp_pub != NULL) {
 					orb_publish(ORB_ID(vehicle_global_velocity_setpoint), _global_vel_sp_pub, &_global_vel_sp);
 
 				} else {
@@ -1823,7 +1823,7 @@ MulticopterPositionControl::task_main()
 			_local_pos_sp.vz = _vel_sp(2);
 
 			/* publish local position setpoint */
-			if (_local_pos_sp_pub != nullptr) {
+			if (_local_pos_sp_pub != NULL) {
 				orb_publish(ORB_ID(vehicle_local_position_setpoint), _local_pos_sp_pub, &_local_pos_sp);
 
 			} else {
@@ -1928,7 +1928,7 @@ MulticopterPositionControl::task_main()
 				!(_control_mode.flag_control_position_enabled ||
 				  _control_mode.flag_control_velocity_enabled))) {
 
-			if (_att_sp_pub != nullptr) {
+			if (_att_sp_pub != NULL) {
 				orb_publish(_attitude_setpoint_id, _att_sp_pub, &_att_sp);
 
 			} else if (_attitude_setpoint_id) {
@@ -1957,7 +1957,7 @@ MulticopterPositionControl::start()
 					   SCHED_PRIORITY_MAX - 5,
 					   1900,
 					   (px4_main_t)&MulticopterPositionControl::task_main_trampoline,
-					   nullptr);
+					   NULL);
 
 	if (_control_task < 0) {
 		warn("task start failed");
@@ -1976,21 +1976,21 @@ int mc_pos_control_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "start")) {
 
-		if (pos_control::g_control != nullptr) {
+		if (pos_control::g_control != NULL) {
 			warnx("already running");
 			return 1;
 		}
 
 		pos_control::g_control = new MulticopterPositionControl;
 
-		if (pos_control::g_control == nullptr) {
+		if (pos_control::g_control == NULL) {
 			warnx("alloc failed");
 			return 1;
 		}
 
 		if (OK != pos_control::g_control->start()) {
 			delete pos_control::g_control;
-			pos_control::g_control = nullptr;
+			pos_control::g_control = NULL;
 			warnx("start failed");
 			return 1;
 		}
@@ -1999,13 +1999,13 @@ int mc_pos_control_main(int argc, char *argv[])
 	}
 
 	if (!strcmp(argv[1], "stop")) {
-		if (pos_control::g_control == nullptr) {
+		if (pos_control::g_control == NULL) {
 			warnx("not running");
 			return 1;
 		}
 
 		delete pos_control::g_control;
-		pos_control::g_control = nullptr;
+		pos_control::g_control = NULL;
 		return 0;
 	}
 

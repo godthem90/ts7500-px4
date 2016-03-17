@@ -47,3 +47,4 @@
 int do_esc_calibration(int mavlink_fd, struct actuator_armed_s* armed);
 
 #endif
+

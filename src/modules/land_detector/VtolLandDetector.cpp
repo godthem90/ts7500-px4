@@ -46,7 +46,7 @@ VtolLandDetector::VtolLandDetector() : MulticopterLandDetector(),
 	_params(),
 	_airspeedSub(-1),
 	_parameterSub(-1),
-	_airspeed{},
+	_airspeed(),
 	_was_in_air(false),
 	_airspeed_filtered(0)
 {

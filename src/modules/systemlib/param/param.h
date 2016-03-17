@@ -85,7 +85,7 @@ typedef uintptr_t	param_t;
 /**
  * Magic handle for hash check param
  */
-#define PARAM_HASH      ((uintptr_t)INT32_MAX)
+#define PARAM_HASH      ((uintptr_t)0x7fffffff)
 
 /**
  * Look up a parameter by name.

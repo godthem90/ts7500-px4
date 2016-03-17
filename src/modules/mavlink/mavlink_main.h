@@ -480,9 +480,9 @@ private:
 
 	static unsigned int	interval_from_rate(float rate);
 
-	static constexpr unsigned RADIO_BUFFER_CRITICAL_LOW_PERCENTAGE = 25;
-	static constexpr unsigned RADIO_BUFFER_LOW_PERCENTAGE = 35;
-	static constexpr unsigned RADIO_BUFFER_HALF_PERCENTAGE = 50;
+	static const unsigned RADIO_BUFFER_CRITICAL_LOW_PERCENTAGE = 25;
+	static const unsigned RADIO_BUFFER_LOW_PERCENTAGE = 35;
+	static const unsigned RADIO_BUFFER_HALF_PERCENTAGE = 50;
 
 	int configure_stream(const char *stream_name, const float rate);
 

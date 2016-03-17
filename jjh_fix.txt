@@ -1,6 +1,6 @@
 1. friend -> friend class
 2. nullptr -> NULL
-* 3. member variable initillized in class -> initillize in constructor
+* 3. member variable initillized in class -> initillize in constructor (const variable must be initialized in initialization list)
 * 4. consturctor initillization list brace -> curl brace (src/lib/DriverFramework/framework/src/DevObj.cpp) with no memeber var 
 ** 4. consturctor initillization list brace -> curl brace with member var
 * 5. WorkItems, DFManagedList constructor : calls constructor (temporary object?) in initialization list -> call constructor in the constructor
@@ -10,3 +10,9 @@
 * 8. enum redefine not allowed -> enum define just once
 * 9. explicit specilization in (namespace or class) -> specilization out of (namespace or class)
 * 10. constexpr -> const
+* 11. member initializer expression list treated as compound expression -> initialize in contructor
+* 12. static_assert delete
+**** 13. /home/jjh/Desktop/ts7500-px4/src/modules/sdlog2/sdlog2.c:744: warning: implicit declaration of function 'dprintf'
+/home/jjh/Desktop/ts7500-px4/src/modules/sdlog2/sdlog2.c:744: warning: nested extern declaration of 'dprintf'
+not resolved yet
+

@@ -213,7 +213,7 @@ private:
 	uint64_t _time_offset;
 	int	_orb_class_instance;
 
-	static constexpr unsigned MOM_SWITCH_COUNT = 8;
+	static const unsigned MOM_SWITCH_COUNT = 8;
 
 	uint8_t _mom_switch_pos[MOM_SWITCH_COUNT];
 	uint16_t _mom_switch_state;

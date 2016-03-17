@@ -388,7 +388,7 @@ LogListHelper::_init()
 	unlink(kLogData);
     	// Open log directory
 	DIR *dp = opendir(kLogRoot);
-	if (dp == nullptr) {
+	if (dp == NULL) {
 		// No log directory. Nothing to do.
 		return;
 	}
@@ -400,10 +400,10 @@ LogListHelper::_init()
 		return;
 	}
 	// Scan directory and collect log files
-	struct dirent entry, *result = nullptr;
+	struct dirent entry, *result = NULL;
 	while (readdir_r(dp, &entry, &result) == 0) {
 		// no more entries?
-		if (result == nullptr) {
+		if (result == NULL) {
 			break;
 		}
 		if (entry.d_type == PX4LOG_DIRECTORY)
@@ -460,10 +460,10 @@ LogListHelper::_scan_logs(FILE* f, const char* dir, time_t& date)
 {
 	DIR *dp = opendir(dir);
 	if (dp) {
-		struct dirent entry, *result = nullptr;
+		struct dirent entry, *result = NULL;
 		while (readdir_r(dp, &entry, &result) == 0) {
 			// no more entries?
-			if (result == nullptr) {
+			if (result == NULL) {
 				break;
 			}
 			if (entry.d_type == PX4LOG_REGULAR_FILE) {
@@ -518,13 +518,13 @@ LogListHelper::delete_all(const char* dir)
 {
     	//-- Open log directory
 	DIR *dp = opendir(dir);
-	if (dp == nullptr) {
+	if (dp == NULL) {
 		return;
 	}
-	struct dirent entry, *result = nullptr;
+	struct dirent entry, *result = NULL;
 	while (readdir_r(dp, &entry, &result) == 0) {
 		// no more entries?
-		if (result == nullptr) {
+		if (result == NULL) {
 			break;
 		}
 		if (entry.d_type == PX4LOG_DIRECTORY && entry.d_name[0] != '.') {

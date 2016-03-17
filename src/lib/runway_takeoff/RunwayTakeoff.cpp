@@ -84,7 +84,7 @@ void RunwayTakeoff::init(float yaw, double current_lat, double current_lon)
 {
 	_init_yaw = yaw;
 	_initialized = true;
-	_state = RunwayTakeoffState::THROTTLE_RAMP;
+	_state = THROTTLE_RAMP;
 	_initialized_time = hrt_absolute_time();
 	_climbout = true; // this is true until climbout is finished
 	_start_wp(0) = (float)current_lat;
@@ -96,24 +96,24 @@ void RunwayTakeoff::update(float airspeed, float alt_agl,
 {
 
 	switch (_state) {
-	case RunwayTakeoffState::THROTTLE_RAMP:
+	case THROTTLE_RAMP:
 		if (hrt_elapsed_time(&_initialized_time) > _throttle_ramp_time) {
-			_state = RunwayTakeoffState::CLAMPED_TO_RUNWAY;
+			_state = CLAMPED_TO_RUNWAY;
 		}
 
 		break;
 
-	case RunwayTakeoffState::CLAMPED_TO_RUNWAY:
+	case CLAMPED_TO_RUNWAY:
 		if (airspeed > _airspeed_min.get() * _min_airspeed_scaling.get()) {
-			_state = RunwayTakeoffState::TAKEOFF;
+			_state = TAKEOFF;
 			mavlink_log_info(mavlink_fd, "#Takeoff airspeed reached");
 		}
 
 		break;
 
-	case RunwayTakeoffState::TAKEOFF:
+	case TAKEOFF:
 		if (alt_agl > _nav_alt.get()) {
-			_state = RunwayTakeoffState::CLIMBOUT;
+			_state = CLIMBOUT;
 
 			/*
 			 * If we started in heading hold mode, move the navigation start WP to the current location now.
@@ -129,10 +129,10 @@ void RunwayTakeoff::update(float airspeed, float alt_agl,
 
 		break;
 
-	case RunwayTakeoffState::CLIMBOUT:
+	case CLIMBOUT:
 		if (alt_agl > _climbout_diff.get()) {
 			_climbout = false;
-			_state = RunwayTakeoffState::FLY;
+			_state = FLY;
 			mavlink_log_info(mavlink_fd, "#Navigating to waypoint");
 		}
 
@@ -149,7 +149,7 @@ void RunwayTakeoff::update(float airspeed, float alt_agl,
 bool RunwayTakeoff::controlYaw()
 {
 	// keep controlling yaw directly until we start navigation
-	return _state < RunwayTakeoffState::CLIMBOUT;
+	return _state < CLIMBOUT;
 }
 
 /*
@@ -160,7 +160,7 @@ bool RunwayTakeoff::controlYaw()
  */
 float RunwayTakeoff::getPitch(float tecsPitch)
 {
-	if (_state <= RunwayTakeoffState::CLAMPED_TO_RUNWAY) {
+	if (_state <= CLAMPED_TO_RUNWAY) {
 		return math::radians(_runway_pitch_sp.get());
 	}
 
@@ -173,12 +173,12 @@ float RunwayTakeoff::getPitch(float tecsPitch)
 float RunwayTakeoff::getRoll(float navigatorRoll)
 {
 	// until we have enough ground clearance, set roll to 0
-	if (_state < RunwayTakeoffState::CLIMBOUT) {
+	if (_state < CLIMBOUT) {
 		return 0.0f;
 	}
 
 	// allow some roll during climbout
-	else if (_state < RunwayTakeoffState::FLY) {
+	else if (_state < FLY) {
 		return math::constrain(navigatorRoll,
 				       math::radians(-_max_takeoff_roll.get()),
 				       math::radians(_max_takeoff_roll.get()));
@@ -195,7 +195,7 @@ float RunwayTakeoff::getRoll(float navigatorRoll)
  */
 float RunwayTakeoff::getYaw(float navigatorYaw)
 {
-	if (_heading_mode.get() == 0 && _state < RunwayTakeoffState::CLIMBOUT) {
+	if (_heading_mode.get() == 0 && _state < CLIMBOUT) {
 		return _init_yaw;
 
 	} else {
@@ -212,7 +212,7 @@ float RunwayTakeoff::getYaw(float navigatorYaw)
 float RunwayTakeoff::getThrottle(float tecsThrottle)
 {
 	switch (_state) {
-	case RunwayTakeoffState::THROTTLE_RAMP: {
+	case THROTTLE_RAMP: {
 			float throttle = hrt_elapsed_time(&_initialized_time) / (float)_throttle_ramp_time *
 					 _takeoff_throttle.get();
 			return throttle < _takeoff_throttle.get() ?
@@ -220,7 +220,7 @@ float RunwayTakeoff::getThrottle(float tecsThrottle)
 			       _takeoff_throttle.get();
 		}
 
-	case RunwayTakeoffState::CLAMPED_TO_RUNWAY:
+	case CLAMPED_TO_RUNWAY:
 		return _takeoff_throttle.get();
 
 	default:
@@ -231,7 +231,7 @@ float RunwayTakeoff::getThrottle(float tecsThrottle)
 bool RunwayTakeoff::resetIntegrators()
 {
 	// reset integrators if we're still on runway
-	return _state < RunwayTakeoffState::TAKEOFF;
+	return _state < TAKEOFF;
 }
 
 /*
@@ -243,7 +243,7 @@ bool RunwayTakeoff::resetIntegrators()
  */
 float RunwayTakeoff::getMinPitch(float sp_min, float climbout_min, float min)
 {
-	if (_state < RunwayTakeoffState::FLY) {
+	if (_state < FLY) {
 		return math::max(sp_min, climbout_min);
 	}
 
@@ -260,7 +260,7 @@ float RunwayTakeoff::getMinPitch(float sp_min, float climbout_min, float min)
 float RunwayTakeoff::getMaxPitch(float max)
 {
 	// use max pitch from parameter if set (> 0.1)
-	if (_state < RunwayTakeoffState::FLY && _max_takeoff_pitch.get() > 0.1f) {
+	if (_state < FLY && _max_takeoff_pitch.get() > 0.1f) {
 		return _max_takeoff_pitch.get();
 	}
 
@@ -280,7 +280,7 @@ math::Vector<2> RunwayTakeoff::getStartWP()
 void RunwayTakeoff::reset()
 {
 	_initialized = false;
-	_state = RunwayTakeoffState::THROTTLE_RAMP;
+	_state = THROTTLE_RAMP;
 }
 
 }

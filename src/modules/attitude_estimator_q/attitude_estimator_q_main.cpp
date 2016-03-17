@@ -116,19 +116,19 @@ public:
 	void		print();
 
 private:
-	static constexpr float _dt_max = 0.02;
-	bool		_task_should_exit = false;		/**< if true, task should exit */
-	int		_control_task = -1;			/**< task handle for task */
+	static const float _dt_max = 0.02;
+	bool		_task_should_exit;		/**< if true, task should exit */
+	int		_control_task;			/**< task handle for task */
 
-	int		_sensors_sub = -1;
-	int		_params_sub = -1;
-	int		_vision_sub = -1;
-	int		_mocap_sub = -1;
-	int		_airspeed_sub = -1;
-	int		_global_pos_sub = -1;
-	orb_advert_t	_att_pub = nullptr;
-	orb_advert_t	_ctrl_state_pub = nullptr;
-	orb_advert_t	_est_state_pub = nullptr;
+	int		_sensors_sub;
+	int		_params_sub;
+	int		_vision_sub;
+	int		_mocap_sub;
+	int		_airspeed_sub;
+	int		_global_pos_sub;
+	orb_advert_t	_att_pub;
+	orb_advert_t	_ctrl_state_pub;
+	orb_advert_t	_est_state_pub;
 
 	struct {
 		param_t	w_acc;
@@ -143,35 +143,35 @@ private:
 		param_t	ext_hdg_mode;
 	}		_params_handles;		/**< handles for interesting parameters */
 
-	float		_w_accel = 0.0f;
-	float		_w_mag = 0.0f;
-	float		_w_ext_hdg = 0.0f;
-	float		_w_gyro_bias = 0.0f;
-	float		_mag_decl = 0.0f;
-	bool		_mag_decl_auto = false;
-	bool		_acc_comp = false;
-	float		_bias_max = 0.0f;
-	float		_vibration_warning_threshold = 1.0f;
-	hrt_abstime	_vibration_warning_timestamp = 0;
-	int		_ext_hdg_mode = 0;
+	float		_w_accel;
+	float		_w_mag;
+	float		_w_ext_hdg;
+	float		_w_gyro_bias;
+	float		_mag_decl;
+	bool		_mag_decl_auto;
+	bool		_acc_comp;
+	float		_bias_max;
+	float		_vibration_warning_threshold;
+	hrt_abstime	_vibration_warning_timestamp;
+	int		_ext_hdg_mode;
 
 	Vector<3>	_gyro;
 	Vector<3>	_accel;
 	Vector<3>	_mag;
 
-	vision_position_estimate_s _vision = {};
+	vision_position_estimate_s _vision;
 	Vector<3>	_vision_hdg;
 
-	att_pos_mocap_s _mocap = {};
+	att_pos_mocap_s _mocap;
 	Vector<3>	_mocap_hdg;
 
-	airspeed_s _airspeed = {};
+	airspeed_s _airspeed;
 
 	Quaternion	_q;
 	Vector<3>	_rates;
 	Vector<3>	_gyro_bias;
 
-	vehicle_global_position_s _gpos = {};
+	vehicle_global_position_s _gpos;
 	Vector<3>	_vel_prev;
 	Vector<3>	_pos_acc;
 
@@ -184,15 +184,15 @@ private:
 	math::LowPassFilter2p _lp_pitch_rate;
 	math::LowPassFilter2p _lp_yaw_rate;
 
-	hrt_abstime _vel_prev_t = 0;
+	hrt_abstime _vel_prev_t;
 
-	bool		_inited = false;
-	bool		_data_good = false;
-	bool		_failsafe = false;
-	bool		_vibration_warning = false;
-	bool		_ext_hdg_good = false;
+	bool		_inited;
+	bool		_data_good;
+	bool		_failsafe;
+	bool		_vibration_warning;
+	bool		_ext_hdg_good;
 
-	int		_mavlink_fd = -1;
+	int		_mavlink_fd;
 
 	perf_counter_t _update_perf;
 	perf_counter_t _loop_perf;
@@ -211,6 +211,10 @@ private:
 
 
 AttitudeEstimatorQ::AttitudeEstimatorQ() :
+	_vision(),
+	_mocap(),
+	_airspeed(),
+	_gpos(),
 	_vel_prev(0, 0, 0),
 	_pos_acc(0, 0, 0),
 	_voter_gyro(3),
@@ -220,6 +224,36 @@ AttitudeEstimatorQ::AttitudeEstimatorQ() :
 	_lp_pitch_rate(250.0f, 30.0f),
 	_lp_yaw_rate(250.0f, 20.0f)
 {
+	_task_should_exit = false;		/**< if true, task should exit */
+	_control_task = -1;			/**< task handle for task */
+	_sensors_sub = -1;
+	_params_sub = -1;
+	_vision_sub = -1;
+	_mocap_sub = -1;
+	_airspeed_sub = -1;
+	_global_pos_sub = -1;
+	_w_accel = 0.0f;
+	_w_mag = 0.0f;
+	_w_ext_hdg = 0.0f;
+	_w_gyro_bias = 0.0f;
+	_mag_decl = 0.0f;
+	_mag_decl_auto = false;
+	_acc_comp = false;
+	_bias_max = 0.0f;
+	_vibration_warning_threshold = 1.0f;
+	_vibration_warning_timestamp = 0;
+	_ext_hdg_mode = 0;
+	_vel_prev_t = 0;
+	_mavlink_fd = -1;
+	_inited = false;
+	_data_good = false;
+	_failsafe = false;
+	_vibration_warning = false;
+	_ext_hdg_good = false;
+	_att_pub = NULL;
+	_ctrl_state_pub = NULL;
+	_est_state_pub = NULL;
+
 	_voter_mag.set_timeout(200000);
 
 	_params_handles.w_acc		= param_find("ATT_W_ACC");
@@ -258,7 +292,7 @@ AttitudeEstimatorQ::~AttitudeEstimatorQ()
 		} while (_control_task != -1);
 	}
 
-	attitude_estimator_q::instance = nullptr;
+	attitude_estimator_q::instance = NULL;
 }
 
 int AttitudeEstimatorQ::start()
@@ -271,7 +305,7 @@ int AttitudeEstimatorQ::start()
 					   SCHED_PRIORITY_MAX - 5,
 					   2500,
 					   (px4_main_t)&AttitudeEstimatorQ::task_main_trampoline,
-					   nullptr);
+					   NULL);
 
 	if (_control_task < 0) {
 		warn("task start failed");
@@ -849,21 +883,21 @@ int attitude_estimator_q_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "start")) {
 
-		if (attitude_estimator_q::instance != nullptr) {
+		if (attitude_estimator_q::instance != NULL) {
 			warnx("already running");
 			return 1;
 		}
 
 		attitude_estimator_q::instance = new AttitudeEstimatorQ;
 
-		if (attitude_estimator_q::instance == nullptr) {
+		if (attitude_estimator_q::instance == NULL) {
 			warnx("alloc failed");
 			return 1;
 		}
 
 		if (OK != attitude_estimator_q::instance->start()) {
 			delete attitude_estimator_q::instance;
-			attitude_estimator_q::instance = nullptr;
+			attitude_estimator_q::instance = NULL;
 			warnx("start failed");
 			return 1;
 		}
@@ -872,13 +906,13 @@ int attitude_estimator_q_main(int argc, char *argv[])
 	}
 
 	if (!strcmp(argv[1], "stop")) {
-		if (attitude_estimator_q::instance == nullptr) {
+		if (attitude_estimator_q::instance == NULL) {
 			warnx("not running");
 			return 1;
 		}
 
 		delete attitude_estimator_q::instance;
-		attitude_estimator_q::instance = nullptr;
+		attitude_estimator_q::instance = NULL;
 		return 0;
 	}
 

@@ -48,7 +48,7 @@ LaunchDetector::LaunchDetector() :
 	SuperBlock(NULL, "LAUN"),
 	activeLaunchDetectionMethodIndex(-1),
 	launchdetection_on(this, "ALL_ON"),
-	throttlePreTakeoff(nullptr, "FW_THR_IDLE")
+	throttlePreTakeoff(NULL, "FW_THR_IDLE")
 {
 	/* init all detectors */
 	launchMethods[0] = new CatapultLaunchMethod(this);

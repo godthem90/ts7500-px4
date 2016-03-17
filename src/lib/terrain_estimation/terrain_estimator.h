@@ -98,3 +98,4 @@ private:
 	bool is_distance_valid(float distance);
 
 };
+

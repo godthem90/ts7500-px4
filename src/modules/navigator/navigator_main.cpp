@@ -113,32 +113,32 @@ Navigator::Navigator() :
 	_offboard_mission_sub(-1),
 	_param_update_sub(-1),
 	_vehicle_command_sub(-1),
-	_pos_sp_triplet_pub(nullptr),
-	_mission_result_pub(nullptr),
-	_geofence_result_pub(nullptr),
-	_att_sp_pub(nullptr),
-	_vstatus{},
-	_control_mode{},
-	_global_pos{},
-	_gps_pos{},
-	_sensor_combined{},
-	_home_pos{},
-	_mission_item{},
-	_nav_caps{},
-	_pos_sp_triplet{},
-	_mission_result{},
-	_att_sp{},
+	_pos_sp_triplet_pub(NULL),
+	_mission_result_pub(NULL),
+	_geofence_result_pub(NULL),
+	_att_sp_pub(NULL),
+	_vstatus(),
+	_control_mode(),
+	_global_pos(),
+	_gps_pos(),
+	_sensor_combined(),
+	_home_pos(),
+	_mission_item(),
+	_nav_caps(),
+	_pos_sp_triplet(),
+	_mission_result(),
+	_att_sp(),
 	_mission_item_valid(false),
 	_mission_instance_count(0),
 	_loop_perf(perf_alloc(PC_ELAPSED, "navigator")),
-	_geofence{},
+	_geofence(),
 	_geofence_violation_warning_sent(false),
 	_inside_fence(true),
 	_can_loiter_at_sp(false),
 	_pos_sp_triplet_updated(false),
 	_pos_sp_triplet_published_invalid_once(false),
 	_mission_result_updated(false),
-	_navigation_mode(nullptr),
+	_navigation_mode(NULL),
 	_mission(this, "MIS"),
 	_loiter(this, "LOI"),
 	_takeoff(this, "TKF"),
@@ -189,7 +189,7 @@ Navigator::~Navigator()
 		} while (_navigator_task != -1);
 	}
 
-	navigator::g_navigator = nullptr;
+	navigator::g_navigator = NULL;
 }
 
 void
@@ -452,7 +452,7 @@ Navigator::task_main()
 			case vehicle_status_s::NAVIGATION_STATE_POSCTL:
 			case vehicle_status_s::NAVIGATION_STATE_TERMINATION:
 			case vehicle_status_s::NAVIGATION_STATE_OFFBOARD:
-				_navigation_mode = nullptr;
+				_navigation_mode = NULL;
 				_can_loiter_at_sp = false;
 				break;
 			case vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION:
@@ -509,7 +509,7 @@ Navigator::task_main()
 				_navigation_mode = &_gpsFailure;
 				break;
 			default:
-				_navigation_mode = nullptr;
+				_navigation_mode = NULL;
 				_can_loiter_at_sp = false;
 				break;
 		}
@@ -520,7 +520,7 @@ Navigator::task_main()
 		}
 
 		/* if nothing is running, set position setpoint triplet invalid once */
-		if (_navigation_mode == nullptr && !_pos_sp_triplet_published_invalid_once) {
+		if (_navigation_mode == NULL && !_pos_sp_triplet_published_invalid_once) {
 			_pos_sp_triplet_published_invalid_once = true;
 			_pos_sp_triplet.previous.valid = false;
 			_pos_sp_triplet.current.valid = false;
@@ -557,7 +557,7 @@ Navigator::start()
 					 SCHED_PRIORITY_DEFAULT + 5,
 					 1500,
 					 (px4_main_t)&Navigator::task_main_trampoline,
-					 nullptr);
+					 NULL);
 
 	if (_navigator_task < 0) {
 		warn("task start failed");
@@ -601,7 +601,7 @@ Navigator::publish_position_setpoint_triplet()
 	_pos_sp_triplet.nav_state = _vstatus.nav_state;
 
 	/* lazily publish the position setpoint triplet only once available */
-	if (_pos_sp_triplet_pub != nullptr) {
+	if (_pos_sp_triplet_pub != NULL) {
 		orb_publish(ORB_ID(position_setpoint_triplet), _pos_sp_triplet_pub, &_pos_sp_triplet);
 
 	} else {
@@ -658,21 +658,21 @@ int navigator_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "start")) {
 
-		if (navigator::g_navigator != nullptr) {
+		if (navigator::g_navigator != NULL) {
 			warnx("already running");
 			return 1;
 		}
 
 		navigator::g_navigator = new Navigator;
 
-		if (navigator::g_navigator == nullptr) {
+		if (navigator::g_navigator == NULL) {
 			warnx("alloc failed");
 			return 1;
 		}
 
 		if (OK != navigator::g_navigator->start()) {
 			delete navigator::g_navigator;
-			navigator::g_navigator = nullptr;
+			navigator::g_navigator = NULL;
 			warnx("start failed");
 			return 1;
 		}
@@ -680,14 +680,14 @@ int navigator_main(int argc, char *argv[])
 		return 0;
 	}
 
-	if (navigator::g_navigator == nullptr) {
+	if (navigator::g_navigator == NULL) {
 		warnx("not running");
 		return 1;
 	}
 
 	if (!strcmp(argv[1], "stop")) {
 		delete navigator::g_navigator;
-		navigator::g_navigator = nullptr;
+		navigator::g_navigator = NULL;
 	} else if (!strcmp(argv[1], "status")) {
 		navigator::g_navigator->status();
 	} else if (!strcmp(argv[1], "fence")) {
@@ -708,7 +708,7 @@ Navigator::publish_mission_result()
 	_mission_result.instance_count = _mission_instance_count;
 
 	/* lazily publish the mission result only once available */
-	if (_mission_result_pub != nullptr) {
+	if (_mission_result_pub != NULL) {
 		/* publish mission result */
 		orb_publish(ORB_ID(mission_result), _mission_result_pub, &_mission_result);
 
@@ -731,7 +731,7 @@ Navigator::publish_geofence_result()
 {
 
 	/* lazily publish the geofence result only once available */
-	if (_geofence_result_pub != nullptr) {
+	if (_geofence_result_pub != NULL) {
 		/* publish mission result */
 		orb_publish(ORB_ID(geofence_result), _geofence_result_pub, &_geofence_result);
 
@@ -745,7 +745,7 @@ void
 Navigator::publish_att_sp()
 {
 	/* lazily publish the attitude sp only once available */
-	if (_att_sp_pub != nullptr) {
+	if (_att_sp_pub != NULL) {
 		/* publish att sp*/
 		orb_publish(ORB_ID(vehicle_attitude_setpoint), _att_sp_pub, &_att_sp);
 

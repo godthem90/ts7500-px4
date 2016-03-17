@@ -49,7 +49,7 @@ Integrator::Integrator(uint64_t auto_reset_interval, bool coning_compensation) :
 	_integral_read(0.0f, 0.0f, 0.0f),
 	_last_val(0.0f, 0.0f, 0.0f),
 	_last_delta(0.0f, 0.0f, 0.0f),
-	_auto_callback(nullptr),
+	_auto_callback(NULL),
 	_coning_comp_on(coning_compensation)
 {
 

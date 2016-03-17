@@ -106,7 +106,7 @@ public:
 	};
 	
 	/// @brief Error codes returned in Nak response PayloadHeader.data[0].
-	enum ErrorCode : uint8_t
+	enum ErrorCode //: uint8_t
         {
 		kErrNone,
 		kErrFail,			///< Unknown failure

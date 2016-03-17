@@ -58,12 +58,12 @@ protected:
 	/**
 	* @brief  blocking loop, should be run in a separate thread or task. Runs at 50Hz
 	**/
-	bool update() override;
+	bool update();
 
 	/**
 	* @brief Initializes the land detection algorithm
 	**/
-	void initialize() override;
+	void initialize();
 
 	/**
 	* @brief  polls all subscriptions and pulls any data that has changed

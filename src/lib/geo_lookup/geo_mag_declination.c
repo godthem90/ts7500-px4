@@ -129,3 +129,4 @@ float get_lookup_table_val(unsigned lat_index, unsigned lon_index)
 {
 	return declination_table[lat_index][lon_index];
 }
+

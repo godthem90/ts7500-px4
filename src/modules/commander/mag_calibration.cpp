@@ -67,13 +67,13 @@
 static const int ERROR = -1;
 
 static const char *sensor_name = "mag";
-static constexpr unsigned max_mags = 3;
-static constexpr float mag_sphere_radius = 0.2f;
-static constexpr unsigned int calibration_sides = 6;			///< The total number of sides
-static constexpr unsigned int calibration_total_points = 240;		///< The total points per magnetometer
-static constexpr unsigned int calibraton_duration_seconds = 42; 	///< The total duration the routine is allowed to take
+static const unsigned int max_mags = 3;
+static const float mag_sphere_radius = 0.2f;
+static const unsigned int calibration_sides = 6;			///< The total number of sides
+static const unsigned int calibration_total_points = 240;		///< The total points per magnetometer
+static const unsigned int calibraton_duration_seconds = 42; 	///< The total duration the routine is allowed to take
 
-static constexpr float MAG_MAX_OFFSET_LEN = 0.6f;	///< The maximum measurement range is ~1.4 Ga, the earth field is ~0.6 Ga, so an offset larger than ~0.8-0.6 Ga means the mag will saturate in some directions.
+static const float MAG_MAX_OFFSET_LEN = 0.6f;	///< The maximum measurement range is ~1.4 Ga, the earth field is ~0.6 Ga, so an offset larger than ~0.8-0.6 Ga means the mag will saturate in some directions.
 
 int32_t	device_ids[max_mags];
 bool internal[max_mags];

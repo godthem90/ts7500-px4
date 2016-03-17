@@ -37,7 +37,9 @@
  * A linked list.
  */
 
+#ifndef NULL
 #define NULL 0
+#endif
 
 #pragma once
 

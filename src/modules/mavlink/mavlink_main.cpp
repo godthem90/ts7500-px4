@@ -99,7 +99,7 @@ static const int ERROR = -1;
 #define MAIN_LOOP_DELAY 			10000	///< 100 Hz @ 1000 bytes/s data rate
 #define FLOW_CONTROL_DISABLE_THRESHOLD		40	///< picked so that some messages still would fit it.
 
-static Mavlink *_mavlink_instances = nullptr;
+static Mavlink *_mavlink_instances = NULL;
 
 #ifdef __PX4_NUTTX
 /* TODO: if this is a class member it crashes */
@@ -128,7 +128,7 @@ Mavlink::Mavlink() :
 #endif
 	_device_name(DEFAULT_DEVICE_NAME),
 	_task_should_exit(false),
-	next(nullptr),
+	next(NULL),
 	_instance_id(0),
 	_mavlink_fd(-1),
 	_task_running(false),
@@ -140,18 +140,18 @@ Mavlink::Mavlink() :
 	_wait_to_transmit(false),
 	_received_messages(false),
 	_main_loop_delay(1000),
-	_subscriptions(nullptr),
-	_streams(nullptr),
-	_mission_manager(nullptr),
-	_parameters_manager(nullptr),
-	_mavlink_ftp(nullptr),
-	_mavlink_log_handler(nullptr),
+	_subscriptions(NULL),
+	_streams(NULL),
+	_mission_manager(NULL),
+	_parameters_manager(NULL),
+	_mavlink_ftp(NULL),
+	_mavlink_log_handler(NULL),
 	_mode(MAVLINK_MODE_NORMAL),
 	_channel(MAVLINK_COMM_0),
 	_radio_id(0),
-	_logbuffer {},
+	_logbuffer (),
 	_total_counter(0),
-	_receive_thread {},
+	_receive_thread (),
 	_verbose(false),
 	_forwarding_on(false),
 	_ftp_on(false),
@@ -163,7 +163,7 @@ Mavlink::Mavlink() :
 	_last_hw_rate_timestamp(0),
 	_mavlink_param_queue_index(0),
 	mavlink_link_termination_allowed(false),
-	_subscribe_to_stream(nullptr),
+	_subscribe_to_stream(NULL),
 	_subscribe_to_stream_rate(0.0f),
 	_udp_initialised(false),
 	_flow_control_enabled(true),
@@ -178,18 +178,18 @@ Mavlink::Mavlink() :
 	_rate_txerr(0.0f),
 	_rate_rx(0.0f),
 #ifdef __PX4_POSIX
-	_myaddr{},
-	_src_addr{},
-	_bcast_addr{},
+	_myaddr(),
+	_src_addr(),
+	_bcast_addr(),
 #endif
 	_socket_fd(-1),
 	_protocol(SERIAL),
 	_network_port(14556),
 	_remote_port(DEFAULT_REMOTE_PORT_UDP),
-	_rstatus {},
-	_message_buffer {},
-	_message_buffer_mutex {},
-	_send_mutex {},
+	_rstatus (),
+	_message_buffer (),
+	_message_buffer_mutex (),
+	_send_mutex (),
 	_param_initialized(false),
 	_param_system_id(0),
 	_param_component_id(0),
@@ -322,7 +322,7 @@ Mavlink::get_instance(unsigned instance)
 		inst_index++;
 	}
 
-	return nullptr;
+	return NULL;
 }
 
 Mavlink *
@@ -336,7 +336,7 @@ Mavlink::get_instance_for_device(const char *device_name)
 		}
 	}
 
-	return nullptr;
+	return NULL;
 }
 
 Mavlink *
@@ -350,21 +350,21 @@ Mavlink::get_instance_for_network_port(unsigned long port)
 		}
 	}
 
-	return nullptr;
+	return NULL;
 }
 
 int
 Mavlink::destroy_all_instances()
 {
 	/* start deleting from the end */
-	Mavlink *inst_to_del = nullptr;
+	Mavlink *inst_to_del = NULL;
 	Mavlink *next_inst = ::_mavlink_instances;
 
 	unsigned iterations = 0;
 
 	warnx("waiting for instances to stop");
 
-	while (next_inst != nullptr) {
+	while (next_inst != NULL) {
 		inst_to_del = next_inst;
 		next_inst = inst_to_del->next;
 
@@ -396,7 +396,7 @@ Mavlink::get_status_all_instances()
 
 	unsigned iterations = 0;
 
-	while (inst != nullptr) {
+	while (inst != NULL) {
 
 		printf("\ninstance #%u:\n", iterations);
 		inst->display_status();
@@ -415,7 +415,7 @@ Mavlink::instance_exists(const char *device_name, Mavlink *self)
 {
 	Mavlink *inst = ::_mavlink_instances;
 
-	while (inst != nullptr) {
+	while (inst != NULL) {
 
 		/* don't compare with itself */
 		if (inst != self && !strcmp(device_name, inst->_device_name)) {
@@ -1212,7 +1212,7 @@ Mavlink::configure_stream(const char *stream_name, const float rate)
 	}
 
 	/* search for stream with specified name in supported streams list */
-	for (unsigned int i = 0; streams_list[i] != nullptr; i++) {
+	for (unsigned int i = 0; streams_list[i] != NULL; i++) {
 
 		if (strcmp(stream_name, streams_list[i]->get_name()) == 0) {
 			/* create new instance */
@@ -1263,7 +1263,7 @@ Mavlink::configure_stream_threadsafe(const char *stream_name, const float rate)
 	 * which polled in mavlink main loop */
 	if (!_task_should_exit) {
 		/* wait for previous subscription completion */
-		while (_subscribe_to_stream != nullptr) {
+		while (_subscribe_to_stream != NULL) {
 			usleep(MAIN_LOOP_DELAY / 2);
 		}
 
@@ -1279,7 +1279,7 @@ Mavlink::configure_stream_threadsafe(const char *stream_name, const float rate)
 		/* wait for subscription */
 		do {
 			usleep(MAIN_LOOP_DELAY / 2);
-		} while (_subscribe_to_stream != nullptr);
+		} while (_subscribe_to_stream != NULL);
 
 		delete[] s;
 	}
@@ -1655,7 +1655,7 @@ Mavlink::task_main(int argc, char *argv[])
 		}
 
 	} else if (get_protocol() == UDP) {
-		if (Mavlink::get_instance_for_network_port(_network_port) != nullptr) {
+		if (Mavlink::get_instance_for_network_port(_network_port) != NULL) {
 			warnx("port %d already occupied", _network_port);
 			return ERROR;
 		}
@@ -1883,7 +1883,7 @@ Mavlink::task_main(int argc, char *argv[])
 
 		_mission_manager->check_active_mission();
 
-		if (param_sub->update(&param_time, nullptr)) {
+		if (param_sub->update(&param_time, NULL)) {
 			/* parameters updated */
 			mavlink_update_system();
 		}
@@ -1949,7 +1949,7 @@ Mavlink::task_main(int argc, char *argv[])
 		}
 
 		/* check for requested subscriptions */
-		if (_subscribe_to_stream != nullptr) {
+		if (_subscribe_to_stream != NULL) {
 			if (OK == configure_stream(_subscribe_to_stream, _subscribe_to_stream_rate)) {
 				if (_subscribe_to_stream_rate > 0.0f) {
 					if ( get_protocol() == SERIAL ) {
@@ -1976,7 +1976,7 @@ Mavlink::task_main(int argc, char *argv[])
 				}
 			}
 
-			_subscribe_to_stream = nullptr;
+			_subscribe_to_stream = NULL;
 		}
 
 		/* update streams */
@@ -2055,31 +2055,31 @@ Mavlink::task_main(int argc, char *argv[])
 	}
 
 	delete _subscribe_to_stream;
-	_subscribe_to_stream = nullptr;
+	_subscribe_to_stream = NULL;
 
 	/* delete streams */
-	MavlinkStream *stream_to_del = nullptr;
+	MavlinkStream *stream_to_del = NULL;
 	MavlinkStream *stream_next = _streams;
 
-	while (stream_next != nullptr) {
+	while (stream_next != NULL) {
 		stream_to_del = stream_next;
 		stream_next = stream_to_del->next;
 		delete stream_to_del;
 	}
 
-	_streams = nullptr;
+	_streams = NULL;
 
 	/* delete subscriptions */
-	MavlinkOrbSubscription *sub_to_del = nullptr;
+	MavlinkOrbSubscription *sub_to_del = NULL;
 	MavlinkOrbSubscription *sub_next = _subscriptions;
 
-	while (sub_next != nullptr) {
+	while (sub_next != NULL) {
 		sub_to_del = sub_next;
 		sub_next = sub_to_del->next;
 		delete sub_to_del;
 	}
 
-	_subscriptions = nullptr;
+	_subscriptions = NULL;
 
 	/* wait for threads to complete */
 	pthread_join(_receive_thread, NULL);
@@ -2237,7 +2237,7 @@ Mavlink::stream_command(int argc, char *argv[])
 {
 	const char *device_name = DEFAULT_DEVICE_NAME;
 	float rate = -1.0f;
-	const char *stream_name = nullptr;
+	const char *stream_name = NULL;
 	unsigned short network_port = 0;
 	char* eptr;
 	int temp_int_arg;
@@ -2262,7 +2262,7 @@ Mavlink::stream_command(int argc, char *argv[])
 	while (i < argc) {
 
 		if (0 == strcmp(argv[i], "-r") && i < argc - 1) {
-			rate = strtod(argv[i + 1], nullptr);
+			rate = strtod(argv[i + 1], NULL);
 
 			if (rate < 0.0f) {
 				err_flag = true;
@@ -2294,9 +2294,9 @@ Mavlink::stream_command(int argc, char *argv[])
 		i++;
 	}
 
-	if (!err_flag && rate >= 0.0f && stream_name != nullptr) {
+	if (!err_flag && rate >= 0.0f && stream_name != NULL) {
 
-		Mavlink *inst = nullptr;
+		Mavlink *inst = NULL;
 		if (provided_device && !provided_network_port) {
 			inst = get_instance_for_device(device_name);
 		} else if (provided_network_port && !provided_device) {
@@ -2306,7 +2306,7 @@ Mavlink::stream_command(int argc, char *argv[])
 			return 1;
 		}
 
-		if (inst != nullptr) {
+		if (inst != NULL) {
 			inst->configure_stream_threadsafe(stream_name, rate);
 
 		} else {

@@ -85,6 +85,10 @@
 #include "mavlink_messages.h"
 #include "mavlink_main.h"
 
+#ifndef INT16_MAX
+#define INT16_MAX           0x7fff
+#endif
+
 static uint16_t cm_uint16_from_m_float(float m);
 static void get_mavlink_mode_state(struct vehicle_status_s *status, struct position_setpoint_triplet_s *pos_sp_triplet,
 				   uint8_t *mavlink_state, uint8_t *mavlink_base_mode, uint32_t *mavlink_custom_mode);
@@ -362,13 +366,16 @@ private:
 	/* do not allow top copying this class */
 	MavlinkStreamStatustext(MavlinkStreamStatustext &);
 	MavlinkStreamStatustext& operator = (const MavlinkStreamStatustext &);
-	FILE *fp = nullptr;
-	unsigned write_err_count = 0;
+	FILE *fp;
+	unsigned write_err_count;
 	static const unsigned write_err_threshold = 5;
 
 protected:
 	explicit MavlinkStreamStatustext(Mavlink *mavlink) : MavlinkStream(mavlink)
-	{}
+	{
+		fp = NULL;
+		write_err_count = 0;
+	}
 
 	~MavlinkStreamStatustext() {
 		if (fp) {
@@ -402,7 +409,7 @@ protected:
 
 						if (write_err_count >= write_err_threshold) {
 							(void)fclose(fp);
-							fp = nullptr;
+							fp = NULL;
 						} else {
 							(void)fputs("\n", fp);
 							(void)fsync(fileno(fp));
@@ -1683,7 +1690,7 @@ private:
 
 protected:
 	explicit MavlinkStreamServoOutputRaw(Mavlink *mavlink) : MavlinkStream(mavlink),
-		_act_sub(nullptr),
+		_act_sub(NULL),
 		_act_time(0)
 	{
 		_act_sub = _mavlink->add_orb_subscription(ORB_ID(actuator_outputs), N);
@@ -1763,7 +1770,7 @@ private:
 
 protected:
 	explicit MavlinkStreamActuatorControlTarget(Mavlink *mavlink) : MavlinkStream(mavlink),
-		_att_ctrl_sub(nullptr),
+		_att_ctrl_sub(NULL),
 		_att_ctrl_time(0)
 	{
 		// XXX this can be removed once the multiplatform system remaps topics
@@ -2017,7 +2024,7 @@ protected:
 		struct position_setpoint_triplet_s pos_sp_triplet;
 
 		if (_pos_sp_triplet_sub->update(&pos_sp_triplet)) {
-			mavlink_position_target_global_int_t msg{};
+			mavlink_position_target_global_int_t msg = {0};
 
 			msg.time_boot_ms = hrt_absolute_time()/1000;
 			msg.coordinate_frame = MAV_FRAME_GLOBAL;
@@ -2078,7 +2085,7 @@ protected:
 		struct vehicle_local_position_setpoint_s pos_sp;
 
 		if (_pos_sp_sub->update(&_pos_sp_time, &pos_sp)) {
-			mavlink_position_target_local_ned_t msg{};
+			mavlink_position_target_local_ned_t msg = {0};
 
 			msg.time_boot_ms = pos_sp.timestamp / 1000;
 			msg.coordinate_frame = MAV_FRAME_LOCAL_NED;
@@ -2154,7 +2161,7 @@ protected:
 			struct vehicle_rates_setpoint_s att_rates_sp;
 			(void)_att_rates_sp_sub->update(&_att_rates_sp_time, &att_rates_sp);
 
-			mavlink_attitude_target_t msg{};
+			mavlink_attitude_target_t msg = {0};
 
 			msg.time_boot_ms = att_sp.timestamp / 1000;
 			mavlink_euler_to_quaternion(att_sp.roll_body, att_sp.pitch_body, att_sp.yaw_body, msg.q);
@@ -2653,7 +2660,7 @@ protected:
 	explicit MavlinkStreamExtendedSysState(Mavlink *mavlink) : MavlinkStream(mavlink),
 		_status_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_status))),
 		_landed_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_land_detected))),
-		_msg{}
+		_msg()
 	{
 
 		_msg.vtol_state = MAV_VTOL_STATE_UNDEFINED;
@@ -2840,5 +2847,5 @@ const StreamListItem *streams_list[] = {
 	new StreamListItem(&MavlinkStreamDistanceSensor::new_instance, &MavlinkStreamDistanceSensor::get_name_static),
 	new StreamListItem(&MavlinkStreamExtendedSysState::new_instance, &MavlinkStreamExtendedSysState::get_name_static),
 	new StreamListItem(&MavlinkStreamAltitude::new_instance, &MavlinkStreamAltitude::get_name_static),
-	nullptr
+	NULL
 };

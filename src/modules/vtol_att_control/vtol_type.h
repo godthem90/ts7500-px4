@@ -152,19 +152,19 @@ protected:
 
 	struct Params 					*_params;
 
-	bool flag_idle_mc = true;		//false = "idle is set for fixed wing mode"; true = "idle is set for multicopter mode"
+	bool flag_idle_mc;		//false = "idle is set for fixed wing mode"; true = "idle is set for multicopter mode"
 
-	float _mc_roll_weight = 1.0f;	// weight for multicopter attitude controller roll output
-	float _mc_pitch_weight = 1.0f;	// weight for multicopter attitude controller pitch output
-	float _mc_yaw_weight = 1.0f;	// weight for multicopter attitude controller yaw output
-	float _mc_throttle_weight = 1.0f;	// weight for multicopter throttle command. Used to avoid
+	float _mc_roll_weight;	// weight for multicopter attitude controller roll output
+	float _mc_pitch_weight;	// weight for multicopter attitude controller pitch output
+	float _mc_yaw_weight;	// weight for multicopter attitude controller yaw output
+	float _mc_throttle_weight;	// weight for multicopter throttle command. Used to avoid
 	// motors spinning up or cutting too fast whend doing transitions.
-	float _thrust_transition = 0.0f;	// thrust value applied during a front transition (tailsitter & tiltrotor only)
+	float _thrust_transition;	// thrust value applied during a front transition (tailsitter & tiltrotor only)
 
-	bool _flag_was_in_trans_mode = false;	// true if mode has just switched to transition
-	hrt_abstime _trans_finished_ts = 0;
-	bool _tecs_running = false;
-	hrt_abstime _tecs_running_ts = 0;
+	bool _flag_was_in_trans_mode;	// true if mode has just switched to transition
+	hrt_abstime _trans_finished_ts;
+	bool _tecs_running;
+	hrt_abstime _tecs_running_ts;
 
 };
 

@@ -53,9 +53,9 @@ int buf_size_2 = 0;
 
 MavlinkFTP::MavlinkFTP(Mavlink* mavlink) :
 	MavlinkStream(mavlink),
-	_session_info{},
-	_utRcvMsgFunc{},
-	_worker_data{}
+	_session_info(),
+	_utRcvMsgFunc(),
+	_worker_data()
 {
 	// initialize session
 	_session_info.fd = -1;
@@ -309,7 +309,7 @@ MavlinkFTP::_workList(PayloadHeader* payload, bool list_hidden)
 
 	DIR *dp = opendir(dirPath);
 
-	if (dp == nullptr) {
+	if (dp == NULL) {
 #ifdef MAVLINK_FTP_UNIT_TEST
 		warnx("File open failed");
 #else
@@ -324,7 +324,7 @@ MavlinkFTP::_workList(PayloadHeader* payload, bool list_hidden)
 	warnx("FTP: list %s offset %d", dirPath, payload->offset);
 #endif
 
-	struct dirent entry, *result = nullptr;
+	struct dirent entry, *result = NULL;
 
 	// move to the requested offset
 	seekdir(dp, payload->offset);
@@ -349,7 +349,7 @@ MavlinkFTP::_workList(PayloadHeader* payload, bool list_hidden)
 		}
 
 		// no more entries?
-		if (result == nullptr) {
+		if (result == NULL) {
 			if (payload->offset != 0 && offset == 0) {
 				// User is requesting subsequent dir entries but there were none. This means the user asked
 				// to seek past EOF.

@@ -54,22 +54,22 @@ private:
 	/**
 	* @brief  polls all subscriptions and pulls any data that has changed
 	**/
-	void updateSubscriptions() override;
+	void updateSubscriptions();
 
 	/**
 	* @brief Runs one iteration of the land detection algorithm
 	**/
-	bool update() override;
+	bool update();
 
 	/**
 	* @brief Initializes the land detection algorithm
 	**/
-	void initialize() override;
+	void initialize();
 
 	/**
 	* @brief download and update local parameter cache
 	**/
-	void updateParameterCache(const bool force) override;
+	void updateParameterCache(const bool force);
 
 	/**
 	* @brief Handles for interesting parameters

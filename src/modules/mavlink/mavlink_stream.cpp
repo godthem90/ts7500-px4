@@ -44,7 +44,7 @@
 #include "mavlink_main.h"
 
 MavlinkStream::MavlinkStream(Mavlink *mavlink) :
-	next(nullptr),
+	next(NULL),
 	_mavlink(mavlink),
 	_interval(1000000),
 	_last_sent(0)

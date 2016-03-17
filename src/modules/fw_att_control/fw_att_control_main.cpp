@@ -338,7 +338,7 @@ namespace att_control
 #endif
 static const int ERROR = -1;
 
-FixedwingAttitudeControl	*g_control = nullptr;
+FixedwingAttitudeControl	*g_control = NULL;
 }
 
 FixedwingAttitudeControl::FixedwingAttitudeControl() :
@@ -357,14 +357,25 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 	_vehicle_status_sub(-1),
 
 	/* publications */
-	_rate_sp_pub(nullptr),
-	_attitude_sp_pub(nullptr),
-	_actuators_0_pub(nullptr),
-	_actuators_2_pub(nullptr),
+	_rate_sp_pub(NULL),
+	_attitude_sp_pub(NULL),
+	_actuators_0_pub(NULL),
+	_actuators_2_pub(NULL),
 
 	_rates_sp_id(0),
 	_actuators_id(0),
 	_attitude_setpoint_id(0),
+
+	_ctrl_state(),
+	_accel(),
+	_att_sp(),
+	_rates_sp(),
+	_manual(),
+	_vcontrol_mode(),
+	_actuators(),
+	_actuators_airframe(),
+	_global_pos(),
+	_vehicle_status(),
 
 	/* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "fw att control")),
@@ -377,17 +388,7 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 	_flaperons_cmd_last(0)
 {
 	/* safely initialize structs */
-	_ctrl_state = {};
-	_accel = {};
-	_att_sp = {};
-	_rates_sp = {};
-	_manual = {};
-	_vcontrol_mode = {};
-	_actuators = {};
-	_actuators_airframe = {};
-	_global_pos = {};
-	_vehicle_status = {};
-
+	
 
 	_parameter_handles.p_tc = param_find("FW_P_TC");
 	_parameter_handles.p_p = param_find("FW_PR_P");
@@ -467,7 +468,7 @@ FixedwingAttitudeControl::~FixedwingAttitudeControl()
 	perf_free(_nonfinite_input_perf);
 	perf_free(_nonfinite_output_perf);
 
-	att_control::g_control = nullptr;
+	att_control::g_control = NULL;
 }
 
 int
@@ -1045,7 +1046,7 @@ FixedwingAttitudeControl::task_main()
 					att_sp.thrust = throttle_sp;
 
 					/* lazily publish the setpoint only once available */
-					if (_attitude_sp_pub != nullptr) {
+					if (_attitude_sp_pub != NULL) {
 						/* publish the attitude setpoint */
 						orb_publish(_attitude_setpoint_id, _attitude_sp_pub, &att_sp);
 
@@ -1199,7 +1200,7 @@ FixedwingAttitudeControl::task_main()
 
 				_rates_sp.timestamp = hrt_absolute_time();
 
-				if (_rate_sp_pub != nullptr) {
+				if (_rate_sp_pub != NULL) {
 					/* publish the attitude rates setpoint */
 					orb_publish(_rates_sp_id, _rate_sp_pub, &_rates_sp);
 
@@ -1232,14 +1233,14 @@ FixedwingAttitudeControl::task_main()
 			    _vcontrol_mode.flag_control_attitude_enabled ||
 			    _vcontrol_mode.flag_control_manual_enabled) {
 				/* publish the actuator controls */
-				if (_actuators_0_pub != nullptr) {
+				if (_actuators_0_pub != NULL) {
 					orb_publish(_actuators_id, _actuators_0_pub, &_actuators);
 
 				} else if (_actuators_id) {
 					_actuators_0_pub = orb_advertise(_actuators_id, &_actuators);
 				}
 
-				if (_actuators_2_pub != nullptr) {
+				if (_actuators_2_pub != NULL) {
 					/* publish the actuator controls*/
 					orb_publish(ORB_ID(actuator_controls_2), _actuators_2_pub, &_actuators_airframe);
 
@@ -1271,7 +1272,7 @@ FixedwingAttitudeControl::start()
 					   SCHED_PRIORITY_MAX - 5,
 					   1300,
 					   (px4_main_t)&FixedwingAttitudeControl::task_main_trampoline,
-					   nullptr);
+					   NULL);
 
 	if (_control_task < 0) {
 		warn("task start failed");
@@ -1290,30 +1291,30 @@ int fw_att_control_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "start")) {
 
-		if (att_control::g_control != nullptr) {
+		if (att_control::g_control != NULL) {
 			warnx("already running");
 			return 1;
 		}
 
 		att_control::g_control = new FixedwingAttitudeControl;
 
-		if (att_control::g_control == nullptr) {
+		if (att_control::g_control == NULL) {
 			warnx("alloc failed");
 			return 1;
 		}
 
 		if (OK != att_control::g_control->start()) {
 			delete att_control::g_control;
-			att_control::g_control = nullptr;
+			att_control::g_control = NULL;
 			warn("start failed");
 			return 1;
 		}
 
 		/* check if the waiting is necessary at all */
-		if (att_control::g_control == nullptr || !att_control::g_control->task_running()) {
+		if (att_control::g_control == NULL || !att_control::g_control->task_running()) {
 
 			/* avoid memory fragmentation by not exiting start handler until the task has fully started */
-			while (att_control::g_control == nullptr || !att_control::g_control->task_running()) {
+			while (att_control::g_control == NULL || !att_control::g_control->task_running()) {
 				usleep(50000);
 				printf(".");
 				fflush(stdout);
@@ -1326,13 +1327,13 @@ int fw_att_control_main(int argc, char *argv[])
 	}
 
 	if (!strcmp(argv[1], "stop")) {
-		if (att_control::g_control == nullptr) {
+		if (att_control::g_control == NULL) {
 			warnx("not running");
 			return 1;
 		}
 
 		delete att_control::g_control;
-		att_control::g_control = nullptr;
+		att_control::g_control = NULL;
 		return 0;
 	}
 

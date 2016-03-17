@@ -65,15 +65,15 @@ orb_advert_t actuator_pub_fd;
 
 MissionBlock::MissionBlock(Navigator *navigator, const char *name) :
 	NavigatorMode(navigator, name),
-	_mission_item({0}),
+	_mission_item(),
 	_waypoint_position_reached(false),
 	_waypoint_yaw_reached(false),
 	_time_first_inside_orbit(0),
 	_action_start(0),
 	_time_wp_reached(0),
-	_actuators{},
-	_actuator_pub(nullptr),
-	_cmd_pub(nullptr),
+	_actuators(),
+	_actuator_pub(NULL),
+	_cmd_pub(NULL),
 	_param_yaw_timeout(this, "MIS_YAW_TMT", false),
 	_param_yaw_err(this, "MIS_YAW_ERR", false),
 	_param_vtol_wv_land(this, "VT_WV_LND_EN", false),
@@ -283,7 +283,7 @@ MissionBlock::issue_command(const struct mission_item_s *item)
 		actuators.control[(int)item->params[0]] = 1.0f / 2000 * -item->params[1];
 		actuators.timestamp = hrt_absolute_time();
 
-		if (_actuator_pub != nullptr) {
+		if (_actuator_pub != NULL) {
 			orb_publish(ORB_ID(actuator_controls_2), _actuator_pub, &actuators);
 
 		} else {
@@ -296,7 +296,7 @@ MissionBlock::issue_command(const struct mission_item_s *item)
 		mission_item_to_vehicle_command(item, &cmd);
 		_action_start = hrt_absolute_time();
 
-		if (_cmd_pub != nullptr) {
+		if (_cmd_pub != NULL) {
 			orb_publish(ORB_ID(vehicle_command), _cmd_pub, &cmd);
 
 		} else {
@@ -459,7 +459,7 @@ MissionBlock::set_land_item(struct mission_item_s *item, bool at_current_locatio
 		struct vehicle_command_s cmd = {};
 		cmd.command = NAV_CMD_DO_VTOL_TRANSITION;
 		cmd.param1 = vehicle_status_s::VEHICLE_VTOL_STATE_MC;
-		if (_cmd_pub != nullptr) {
+		if (_cmd_pub != NULL) {
 			orb_publish(ORB_ID(vehicle_command), _cmd_pub, &cmd);
 		} else {
 			_cmd_pub = orb_advertise(ORB_ID(vehicle_command), &cmd);

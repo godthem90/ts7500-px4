@@ -491,7 +491,7 @@ function(px4_add_common_flags)
 
 	set(warnings
 		-Wall
-		-Werror
+		#-Werror
 		-Wextra
 		-Wno-sign-compare
 		#-Wshadow # very verbose due to eigen

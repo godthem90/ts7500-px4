@@ -478,7 +478,7 @@ private:
 namespace sensors
 {
 
-Sensors	*g_sensors = nullptr;
+Sensors	*g_sensors = NULL;
 }
 
 Sensors::Sensors() :
@@ -492,10 +492,6 @@ Sensors::Sensors() :
 	_armed(false),
 
 	/* subscriptions */
-	_gyro_sub{ -1, -1, -1},
-	_accel_sub{ -1, -1, -1},
-	_mag_sub{ -1, -1, -1},
-	_baro_sub{ -1, -1, -1},
 	_gyro_count(0),
 	_accel_count(0),
 	_mag_count(0),
@@ -507,21 +503,21 @@ Sensors::Sensors() :
 	_manual_control_sub(-1),
 
 	/* publications */
-	_sensor_pub(nullptr),
-	_manual_control_pub(nullptr),
-	_actuator_group_3_pub(nullptr),
-	_rc_pub(nullptr),
-	_battery_pub(nullptr),
-	_airspeed_pub(nullptr),
-	_diff_pres_pub(nullptr),
+	_sensor_pub(NULL),
+	_manual_control_pub(NULL),
+	_actuator_group_3_pub(NULL),
+	_rc_pub(NULL),
+	_battery_pub(NULL),
+	_airspeed_pub(NULL),
+	_diff_pres_pub(NULL),
 
 	/* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "sensor task update")),
 	_airspeed_validator(),
 
-	_param_rc_values{},
-	_board_rotation{},
-	_mag_rotation{},
+	_param_rc_values(),
+	_board_rotation(),
+	_mag_rotation(),
 
 	_battery_discharged(0),
 	_battery_current_timestamp(0)
@@ -680,7 +676,7 @@ Sensors::~Sensors()
 		} while (_sensors_task != -1);
 	}
 
-	sensors::g_sensors = nullptr;
+	sensors::g_sensors = NULL;
 }
 
 int
@@ -1141,7 +1137,7 @@ Sensors::diff_pres_poll(struct sensor_combined_s &raw)
 		_airspeed.air_temperature_celsius = air_temperature_celsius;
 
 		/* announce the airspeed if needed, just publish else */
-		if (_airspeed_pub != nullptr) {
+		if (_airspeed_pub != NULL) {
 			orb_publish(ORB_ID(airspeed), _airspeed_pub, &_airspeed);
 
 		} else {
@@ -1645,7 +1641,7 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 						_diff_pres.temperature = -1000.0f;
 
 						/* announce the airspeed if needed, just publish else */
-						if (_diff_pres_pub != nullptr) {
+						if (_diff_pres_pub != NULL) {
 							orb_publish(ORB_ID(differential_pressure), _diff_pres_pub, &_diff_pres);
 
 						} else {
@@ -1661,7 +1657,7 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 
 			if (_battery_status.voltage_filtered_v > BATT_V_IGNORE_THRESHOLD) {
 				/* announce the battery status if needed, just publish else */
-				if (_battery_pub != nullptr) {
+				if (_battery_pub != NULL) {
 					orb_publish(ORB_ID(battery_status), _battery_pub, &_battery_status);
 
 				} else {
@@ -1862,7 +1858,7 @@ Sensors::rc_poll()
 		_rc.frame_drop_count = rc_input.rc_lost_frame_count;
 
 		/* publish rc_channels topic even if signal is invalid, for debug */
-		if (_rc_pub != nullptr) {
+		if (_rc_pub != NULL) {
 			orb_publish(ORB_ID(rc_channels), _rc_pub, &_rc);
 
 		} else {
@@ -1908,7 +1904,7 @@ Sensors::rc_poll()
 					     _parameters.rc_killswitch_th, _parameters.rc_killswitch_inv);
 
 			/* publish manual_control_setpoint topic */
-			if (_manual_control_pub != nullptr) {
+			if (_manual_control_pub != NULL) {
 				orb_publish(ORB_ID(manual_control_setpoint), _manual_control_pub, &manual);
 
 			} else {
@@ -1931,7 +1927,7 @@ Sensors::rc_poll()
 			actuator_group_3.control[7] = manual.aux3;
 
 			/* publish actuator_controls_3 topic */
-			if (_actuator_group_3_pub != nullptr) {
+			if (_actuator_group_3_pub != NULL) {
 				orb_publish(ORB_ID(actuator_controls_3), _actuator_group_3_pub, &actuator_group_3);
 
 			} else {
@@ -2002,8 +1998,8 @@ Sensors::task_main()
 	struct sensor_combined_s raw = {};
 
 	/* ensure no overflows can occur */
-	static_assert((sizeof(raw.gyro_timestamp) / sizeof(raw.gyro_timestamp[0])) >= SENSOR_COUNT_MAX,
-		      "SENSOR_COUNT_MAX larger than sensor_combined datastructure fields. Overflow would occur");
+	/*static_assert((sizeof(raw.gyro_timestamp) / sizeof(raw.gyro_timestamp[0])) >= SENSOR_COUNT_MAX,
+		      "SENSOR_COUNT_MAX larger than sensor_combined datastructure fields. Overflow would occur");*/
 
 	/*
 	 * do subscriptions
@@ -2195,7 +2191,7 @@ Sensors::start()
 					   SCHED_PRIORITY_MAX - 5,
 					   2000,
 					   (px4_main_t)&Sensors::task_main_trampoline,
-					   nullptr);
+					   NULL);
 
 	/* wait until the task is up and running or has failed */
 	while (_sensors_task > 0 && _task_should_exit) {
@@ -2218,21 +2214,21 @@ int sensors_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "start")) {
 
-		if (sensors::g_sensors != nullptr) {
+		if (sensors::g_sensors != NULL) {
 			warnx("already running");
 			return 0;
 		}
 
 		sensors::g_sensors = new Sensors;
 
-		if (sensors::g_sensors == nullptr) {
+		if (sensors::g_sensors == NULL) {
 			warnx("alloc failed");
 			return 1;
 		}
 
 		if (OK != sensors::g_sensors->start()) {
 			delete sensors::g_sensors;
-			sensors::g_sensors = nullptr;
+			sensors::g_sensors = NULL;
 			warnx("start failed");
 			return 1;
 		}
@@ -2241,13 +2237,13 @@ int sensors_main(int argc, char *argv[])
 	}
 
 	if (!strcmp(argv[1], "stop")) {
-		if (sensors::g_sensors == nullptr) {
+		if (sensors::g_sensors == NULL) {
 			warnx("not running");
 			return 1;
 		}
 
 		delete sensors::g_sensors;
-		sensors::g_sensors = nullptr;
+		sensors::g_sensors = NULL;
 		return 0;
 	}
 

@@ -316,9 +316,9 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_vehicle_status_sub(-1),
 
 	/* publications */
-	_v_rates_sp_pub(nullptr),
-	_actuators_0_pub(nullptr),
-	_controller_status_pub(nullptr),
+	_v_rates_sp_pub(NULL),
+	_actuators_0_pub(NULL),
+	_controller_status_pub(NULL),
 	_rates_sp_id(0),
 	_actuators_id(0),
 
@@ -327,7 +327,7 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	/* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "mc_att_control")),
 	_controller_latency_perf(perf_alloc_once(PC_ELAPSED, "ctrl_latency")),
-	_ts_opt_recovery(nullptr)
+	_ts_opt_recovery(NULL)
 
 {
 	memset(&_ctrl_state, 0, sizeof(_ctrl_state));
@@ -432,11 +432,11 @@ MulticopterAttitudeControl::~MulticopterAttitudeControl()
 			}
 		} while (_control_task != -1);
 	}
-	if (_ts_opt_recovery != nullptr) {
+	if (_ts_opt_recovery != NULL) {
 		delete _ts_opt_recovery;
 	}
 
-	mc_att_control::g_control = nullptr;
+	mc_att_control::g_control = NULL;
 }
 
 int
@@ -886,7 +886,7 @@ MulticopterAttitudeControl::task_main()
 
 			if (_v_control_mode.flag_control_attitude_enabled) {
 
-				if (_ts_opt_recovery == nullptr) {
+				if (_ts_opt_recovery == NULL) {
 					// the  tailsitter recovery instance has not been created, thus, the vehicle
 					// is not a tailsitter, do normal attitude control
 					control_attitude(dt);
@@ -912,7 +912,7 @@ MulticopterAttitudeControl::task_main()
 				_v_rates_sp.thrust = _thrust_sp;
 				_v_rates_sp.timestamp = hrt_absolute_time();
 
-				if (_v_rates_sp_pub != nullptr) {
+				if (_v_rates_sp_pub != NULL) {
 					orb_publish(_rates_sp_id, _v_rates_sp_pub, &_v_rates_sp);
 
 				} else if (_rates_sp_id) {
@@ -936,7 +936,7 @@ MulticopterAttitudeControl::task_main()
 					_v_rates_sp.thrust = _thrust_sp;
 					_v_rates_sp.timestamp = hrt_absolute_time();
 
-					if (_v_rates_sp_pub != nullptr) {
+					if (_v_rates_sp_pub != NULL) {
 						orb_publish(_rates_sp_id, _v_rates_sp_pub, &_v_rates_sp);
 
 					} else if (_rates_sp_id) {
@@ -970,7 +970,7 @@ MulticopterAttitudeControl::task_main()
 				_controller_status.timestamp = hrt_absolute_time();
 
 				if (!_actuators_0_circuit_breaker_enabled) {
-					if (_actuators_0_pub != nullptr) {
+					if (_actuators_0_pub != NULL) {
 
 						orb_publish(_actuators_id, _actuators_0_pub, &_actuators);
 						perf_end(_controller_latency_perf);
@@ -982,7 +982,7 @@ MulticopterAttitudeControl::task_main()
 				}
 
 				/* publish controller status */
-				if (_controller_status_pub != nullptr) {
+				if (_controller_status_pub != NULL) {
 					orb_publish(ORB_ID(mc_att_ctrl_status), _controller_status_pub, &_controller_status);
 
 				} else {
@@ -1009,7 +1009,7 @@ MulticopterAttitudeControl::start()
 					   SCHED_PRIORITY_MAX - 5,
 					   1500,
 					   (px4_main_t)&MulticopterAttitudeControl::task_main_trampoline,
-					   nullptr);
+					   NULL);
 
 	if (_control_task < 0) {
 		warn("task start failed");
@@ -1028,21 +1028,21 @@ int mc_att_control_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "start")) {
 
-		if (mc_att_control::g_control != nullptr) {
+		if (mc_att_control::g_control != NULL) {
 			warnx("already running");
 			return 1;
 		}
 
 		mc_att_control::g_control = new MulticopterAttitudeControl;
 
-		if (mc_att_control::g_control == nullptr) {
+		if (mc_att_control::g_control == NULL) {
 			warnx("alloc failed");
 			return 1;
 		}
 
 		if (OK != mc_att_control::g_control->start()) {
 			delete mc_att_control::g_control;
-			mc_att_control::g_control = nullptr;
+			mc_att_control::g_control = NULL;
 			warnx("start failed");
 			return 1;
 		}
@@ -1051,13 +1051,13 @@ int mc_att_control_main(int argc, char *argv[])
 	}
 
 	if (!strcmp(argv[1], "stop")) {
-		if (mc_att_control::g_control == nullptr) {
+		if (mc_att_control::g_control == NULL) {
 			warnx("not running");
 			return 1;
 		}
 
 		delete mc_att_control::g_control;
-		mc_att_control::g_control = nullptr;
+		mc_att_control::g_control = NULL;
 		return 0;
 	}
 

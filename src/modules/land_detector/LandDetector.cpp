@@ -47,12 +47,13 @@
 
 LandDetector::LandDetector() :
 	_landDetectedPub(0),
-	_landDetected( {0, false}),
-	       _arming_time(0),
-	       _taskShouldExit(false),
-	       _taskIsRunning(false),
-_work{} {
-	// ctor
+	_landDetected(),
+	_arming_time(0),
+	_taskShouldExit(false),
+	_taskIsRunning(false),
+	_work()
+{
+		// ctor
 }
 
 LandDetector::~LandDetector()

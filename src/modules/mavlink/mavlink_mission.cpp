@@ -87,7 +87,7 @@ MavlinkMissionManager::MavlinkMissionManager(Mavlink *mavlink) : MavlinkStream(m
 	_transfer_partner_compid(0),
 	_offboard_mission_sub(-1),
 	_mission_result_sub(-1),
-	_offboard_mission_pub(nullptr),
+	_offboard_mission_pub(NULL),
 	_slow_rate_limiter(_interval / 10.0f),
 	_verbose(false)
 {
@@ -160,7 +160,7 @@ MavlinkMissionManager::update_active_mission(int dataman_id, unsigned count, int
 		_my_dataman_id = _dataman_id;
 
 		/* mission state saved successfully, publish offboard_mission topic */
-		if (_offboard_mission_pub == nullptr) {
+		if (_offboard_mission_pub == NULL) {
 			_offboard_mission_pub = orb_advertise(ORB_ID(offboard_mission), &mission);
 
 		} else {

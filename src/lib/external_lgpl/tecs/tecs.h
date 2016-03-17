@@ -28,7 +28,7 @@ class __EXPORT TECS
 {
 public:
 	TECS() :
-		_tecs_state {},
+		_tecs_state (),
 		_update_50hz_last_usec(0),
 		_update_speed_last_usec(0),
 		_update_pitch_throttle_last_usec(0),
@@ -417,9 +417,9 @@ private:
 	// Time since last update of main TECS loop (seconds)
 	float _DT;
 
-	static constexpr float DT_MIN = 0.001f;
-	static constexpr float DT_DEFAULT = 0.02f;
-	static constexpr float DT_MAX = 1.0f;
+	static const float DT_MIN = 0.001f;
+	static const float DT_DEFAULT = 0.02f;
+	static const float DT_MAX = 1.0f;
 
 	bool _airspeed_enabled;
 	bool _states_initalized;
