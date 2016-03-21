@@ -13,6 +13,7 @@ set(CMAKE_TOOLCHAIN_FILE ${CMAKE_SOURCE_DIR}/cmake/toolchains/Toolchain-arm-oabi
 
 set(config_module_list
 	drivers/device
+	drivers/ts7500io
 	platforms/common
 	platforms/posix/px4_layer
 	platforms/posix/work_queue
