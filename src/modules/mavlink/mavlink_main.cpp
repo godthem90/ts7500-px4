@@ -1691,7 +1691,7 @@ Mavlink::task_main(int argc, char *argv[])
 	int ret;
 	ret = VDev::init();
 	if (ret != OK) {
-		PX4_WARN("VDev setup for mavlink log device failed!\n");
+		warnx("VDev setup for mavlink log device failed!\n");
 	}
 #endif
 

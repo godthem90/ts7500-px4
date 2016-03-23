@@ -1992,7 +1992,8 @@ Sensors::task_main()
 
 		DevMgr::releaseHandle(_h_adc);
 
-		return;
+		exit(0);
+		//return;
 	}
 
 	struct sensor_combined_s raw = {};

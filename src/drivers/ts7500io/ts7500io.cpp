@@ -61,10 +61,14 @@
 #include <px4_tasks.h>
 #include <px4_posix.h>
 
+#include <drivers/device/device.h>
 #include <drivers/drv_hrt.h>
+#include <drivers/drv_pwm_output.h>
+#include <drivers/drv_rc_input.h>
 
 #include <systemlib/param/param.h>
 #include <systemlib/circuit_breaker.h>
+//#include <systemlib/perf_counter.h>
 
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_controls_0.h>
@@ -93,15 +97,11 @@
 
 #include <arch/board/board.h>
 
-#include <drivers/device/device.h>
-#include <drivers/drv_rc_input.h>
-#include <drivers/drv_pwm_output.h>
 #include <drivers/drv_sbus.h>
 #include <drivers/drv_gpio.h>
 #include <drivers/drv_mixer.h>
 
 #include <systemlib/mixer/mixer.h>
-#include <systemlib/perf_counter.h>
 #include <systemlib/err.h>
 #include <systemlib/systemlib.h>
 #include <systemlib/scheduling_priorities.h>
@@ -117,12 +117,10 @@
 #define PX4IO_INAIR_RESTART_ENABLE	_IOC(0xff00, 1)
 #define PX4IO_REBOOT_BOOTLOADER		_IOC(0xff00, 2)
 #define PX4IO_CHECK_CRC			_IOC(0xff00, 3)
-
+*/
 #define UPDATE_INTERVAL_MIN		2			// 2 ms	-> 500 Hz
 #define ORB_CHECK_INTERVAL		200000		// 200 ms -> 5 Hz
 #define IO_POLL_INTERVAL		20000		// 20 ms -> 50 Hz
-*/
-
 
 #define SCHED_PRIORITY_ACTUATOR_OUTPUTS     (SCHED_PRIORITY_MAX - 15)
 
@@ -146,6 +144,7 @@ public:
 
 private:
 
+	//device::VDev			*PWM_dev;
 	unsigned		_hardware;		///< Hardware revision
 	unsigned		_max_actuators;		///< Maximum # of actuators supported by PX4IO
 	unsigned		_max_controls;		///< Maximum # of controls supported by PX4IO
@@ -165,9 +164,33 @@ private:
 
 	uint16_t		_status;		///< Various IO status flags
 	uint16_t		_alarms;		///< Various IO alarms
+	uint16_t		_last_written_arming_s;	///< the last written arming state reg
+	uint16_t		_last_written_arming_c;	///< the last written arming state reg
+
+	/* subscribed topics */
+	int			_t_actuator_controls_0;	///< actuator controls group 0 topic
+	int			_t_actuator_controls_1;	///< actuator controls group 1 topic
+	int			_t_actuator_controls_2;	///< actuator controls group 2 topic
+	int			_t_actuator_controls_3;	///< actuator controls group 3 topic
+	int			_t_actuator_armed;	///< system armed control topic
+	int 			_t_vehicle_control_mode;///< vehicle control mode topic
+	int			_t_param;		///< parameter update topic
+	bool			_param_update_force;	///< force a parameter update
+	int			_t_vehicle_command;	///< vehicle command topic
 
 	orb_advert_t 		_to_input_rc;		///< rc inputs from io
+	orb_advert_t		_to_outputs;		///< mixed servo outputs topic
+	orb_advert_t		_to_servorail;		///< servorail status
 	orb_advert_t		_to_safety;		///< status of safety
+	orb_advert_t 		_to_mixer_status; 	///< mixer status flags
+
+	actuator_outputs_s	_outputs;		///< mixed outputs
+
+	bool			_primary_pwm_device;	///< true if we are the default PWM output
+	bool			_lockdown_override;	///< allow to override the safety lockdown
+
+	bool			_cb_flighttermination;	///< true if the flight termination circuit breaker is enabled
+	bool 			_in_esc_calibration_mode;	///< do not send control outputs to IO (used for esc calibration)
 
 	int32_t			_rssi_pwm_chan; ///< RSSI PWM input channel
 	int32_t			_rssi_pwm_max; ///< max RSSI input on PWM channel
@@ -227,6 +250,16 @@ private:
 
 
 	/**
+	 * Send controls for one group to IO
+	 */
+	int			io_set_control_state(unsigned group);
+
+	/**
+	 * Send all controls to IO
+	 */
+	int			io_set_control_groups();
+
+	/**
 	 * Update IO's arming-related state
 	 */
 	int			io_set_arming_state();
@@ -263,6 +296,29 @@ private:
 	 */
 	int			io_disable_rc_handling();
 
+	/**
+	 * Fetch RC inputs from IO.
+	 *
+	 * @param input_rc	Input structure to populate.
+	 * @return		OK if data was returned.
+	 */
+	int			io_get_raw_rc_input(rc_input_values &input_rc);
+
+	/**
+	 * Fetch and publish raw RC input data.
+	 */
+	int			io_publish_raw_rc();
+
+	/**
+	 * Fetch and publish the PWM servo outputs.
+	 */
+	int			io_publish_pwm_outputs();
+
+	/**
+	 * Send mixer definition text to IO
+	 */
+	int			mixer_send(const char *buf, unsigned buflen, unsigned retries = 3);
+
 
 
 	static void task_main_trampoline(int argc, char *argv[]);
@@ -275,6 +331,7 @@ RC_Driver *rc_dev = NULL;
 
 RC_Driver::RC_Driver()
 {
+	//PWM_dev = new device::VDev("pwm-dev", PWM_OUTPUT0_DEVICE_PATH);
 	_hardware = 0;
 	_max_actuators = 0;
 	_max_controls = 0;
@@ -290,8 +347,19 @@ RC_Driver::RC_Driver()
 	_mavlink_fd = -1;
 	_status = 0;
 	_alarms = 0;
+	_t_actuator_controls_0 = -1;
+	_t_actuator_controls_1 = -1;
+	_t_actuator_controls_2 = -1;
+	_t_actuator_controls_3 = -1;
+	_t_actuator_armed = -1;
+	_t_vehicle_control_mode = -1;
+	_t_param = -1;
+	_param_update_force = false;
+	_t_vehicle_command = -1;
 	_to_input_rc = NULL;
 	_to_safety = NULL;
+	_primary_pwm_device = false;
+	_cb_flighttermination = true;
 	_rssi_pwm_chan = 0;
 	_rssi_pwm_max = 0;
 	_rssi_pwm_min = 0;
@@ -674,13 +742,357 @@ int RC_Driver::io_set_rc_config()
 	return ret;
 }
 
-void RC_Driver::task_main()
+int RC_Driver::io_set_control_groups()
+{
+	int ret = io_set_control_state(0);
+
+	/* send auxiliary control groups */
+	(void)io_set_control_state(1);
+	(void)io_set_control_state(2);
+	(void)io_set_control_state(3);
+
+	return ret;
+}
+
+int RC_Driver::io_set_control_state(unsigned group)
+{
+	actuator_controls_s	controls;	///< actuator outputs
+	uint16_t 		regs[_max_actuators];
+
+	/* get controls */
+	bool changed = false;
+
+	switch (group) {
+	case 0: {
+			orb_check(_t_actuator_controls_0, &changed);
+
+			if (changed) {
+				orb_copy(ORB_ID(actuator_controls_0), _t_actuator_controls_0, &controls);
+				//perf_set(_perf_sample_latency, hrt_elapsed_time(&controls.timestamp_sample));
+			}
+		}
+		break;
+
+	case 1: {
+			orb_check(_t_actuator_controls_1, &changed);
+
+			if (changed) {
+				orb_copy(ORB_ID(actuator_controls_1), _t_actuator_controls_1, &controls);
+			}
+		}
+		break;
+
+	case 2: {
+			orb_check(_t_actuator_controls_2, &changed);
+
+			if (changed) {
+				orb_copy(ORB_ID(actuator_controls_2), _t_actuator_controls_2, &controls);
+			}
+		}
+		break;
+
+	case 3: {
+			orb_check(_t_actuator_controls_3, &changed);
+
+			if (changed) {
+				orb_copy(ORB_ID(actuator_controls_3), _t_actuator_controls_3, &controls);
+			}
+		}
+		break;
+	}
+
+	if (!changed && (!_in_esc_calibration_mode || group != 0)) {
+		return -1;
+
+	} else if (_in_esc_calibration_mode && group == 0) {
+		/* modify controls to get max pwm (full thrust) on every esc */
+		memset(&controls, 0, sizeof(controls));
+
+		/* set maximum thrust */
+		controls.control[3] = 1.0f;
+	}
+
+	for (unsigned i = 0; i < _max_controls; i++) {
+
+		/* ensure FLOAT_TO_REG does not produce an integer overflow */
+		float ctrl = controls.control[i];
+
+		if (ctrl < -1.0f) {
+			ctrl = -1.0f;
+
+		} else if (ctrl > 1.0f) {
+			ctrl = 1.0f;
+		}
+
+		regs[i] = FLOAT_TO_REG(ctrl);
+	}
+
+	/* copy values to registers in IO */
+	return io_reg_set(PX4IO_PAGE_CONTROLS, group * PX4IO_PROTOCOL_MAX_CONTROL_COUNT, regs, _max_controls);
+}
+
+int RC_Driver::io_get_raw_rc_input(rc_input_values &input_rc)
+{
+	uint32_t channel_count;
+	int	ret;
+
+	/* we don't have the status bits, so input_source has to be set elsewhere */
+	input_rc.input_source = input_rc_s::RC_INPUT_SOURCE_UNKNOWN;
+
+	const unsigned prolog = (PX4IO_P_RAW_RC_BASE - PX4IO_P_RAW_RC_COUNT);
+	uint16_t regs[input_rc_s::RC_INPUT_MAX_CHANNELS + prolog];
+
+	/*
+	 * Read the channel count and the first 9 channels.
+	 *
+	 * This should be the common case (9 channel R/C control being a reasonable upper bound).
+	 */
+	ret = io_reg_get(PX4IO_PAGE_RAW_RC_INPUT, PX4IO_P_RAW_RC_COUNT, &regs[0], prolog + 9);
+
+	if (ret != OK) {
+		return ret;
+	}
+
+	/*
+	 * Get the channel count any any extra channels. This is no more expensive than reading the
+	 * channel count once.
+	 */
+	channel_count = regs[PX4IO_P_RAW_RC_COUNT];
+
+	/* limit the channel count */
+	if (channel_count > input_rc_s::RC_INPUT_MAX_CHANNELS) {
+		channel_count = input_rc_s::RC_INPUT_MAX_CHANNELS;
+	}
+
+	_rc_chan_count = channel_count;
+
+	input_rc.timestamp_publication = hrt_absolute_time();
+
+	input_rc.rc_ppm_frame_length = regs[PX4IO_P_RAW_RC_DATA];
+	input_rc.rssi = regs[PX4IO_P_RAW_RC_NRSSI];
+	input_rc.rc_failsafe = (regs[PX4IO_P_RAW_RC_FLAGS] & PX4IO_P_RAW_RC_FLAGS_FAILSAFE);
+	input_rc.rc_lost = !(regs[PX4IO_P_RAW_RC_FLAGS] & PX4IO_P_RAW_RC_FLAGS_RC_OK);
+	input_rc.rc_lost_frame_count = regs[PX4IO_P_RAW_LOST_FRAME_COUNT];
+	input_rc.rc_total_frame_count = regs[PX4IO_P_RAW_FRAME_COUNT];
+	input_rc.channel_count = channel_count;
+
+	/* rc_lost has to be set before the call to this function */
+	if (!input_rc.rc_lost && !input_rc.rc_failsafe) {
+		_rc_last_valid = input_rc.timestamp_publication;
+	}
+
+	input_rc.timestamp_last_signal = _rc_last_valid;
+
+	/* FIELDS NOT SET HERE */
+	/* input_rc.input_source is set after this call XXX we might want to mirror the flags in the RC struct */
+
+	if (channel_count > 9) {
+		ret = io_reg_get(PX4IO_PAGE_RAW_RC_INPUT, PX4IO_P_RAW_RC_BASE + 9, &regs[prolog + 9], channel_count - 9);
+
+		if (ret != OK) {
+			return ret;
+		}
+	}
+
+	/* last thing set are the actual channel values as 16 bit values */
+	for (unsigned i = 0; i < channel_count; i++) {
+		input_rc.values[i] = regs[prolog + i];
+	}
+
+	/* get RSSI from input channel */
+	if (_rssi_pwm_chan > 0 && _rssi_pwm_chan <= input_rc_s::RC_INPUT_MAX_CHANNELS && _rssi_pwm_max - _rssi_pwm_min != 0) {
+		int rssi = ((input_rc.values[_rssi_pwm_chan - 1] - _rssi_pwm_min) * 100) /
+			   (_rssi_pwm_max - _rssi_pwm_min);
+		rssi = rssi > 100 ? 100 : rssi;
+		rssi = rssi < 0 ? 0 : rssi;
+		input_rc.rssi = rssi;
+	}
+
+	return ret;
+}
+
+int RC_Driver::io_publish_raw_rc()
 {
 
+	/* fetch values from IO */
+	rc_input_values	rc_val;
+
+	/* set the RC status flag ORDER MATTERS! */
+	rc_val.rc_lost = !(_status & PX4IO_P_STATUS_FLAGS_RC_OK);
+
+	int ret = io_get_raw_rc_input(rc_val);
+
+	if (ret != OK) {
+		return ret;
+	}
+
+	/* sort out the source of the values */
+	if (_status & PX4IO_P_STATUS_FLAGS_RC_PPM) {
+		rc_val.input_source = input_rc_s::RC_INPUT_SOURCE_PX4IO_PPM;
+
+	} else if (_status & PX4IO_P_STATUS_FLAGS_RC_DSM) {
+		rc_val.input_source = input_rc_s::RC_INPUT_SOURCE_PX4IO_SPEKTRUM;
+
+	} else if (_status & PX4IO_P_STATUS_FLAGS_RC_SBUS) {
+		rc_val.input_source = input_rc_s::RC_INPUT_SOURCE_PX4IO_SBUS;
+
+	} else if (_status & PX4IO_P_STATUS_FLAGS_RC_ST24) {
+		rc_val.input_source = input_rc_s::RC_INPUT_SOURCE_PX4IO_ST24;
+
+	} else {
+		rc_val.input_source = input_rc_s::RC_INPUT_SOURCE_UNKNOWN;
+
+		/* only keep publishing RC input if we ever got a valid input */
+		if (_rc_last_valid == 0) {
+			/* we have never seen valid RC signals, abort */
+			return OK;
+		}
+	}
+
+	/* lazily advertise on first publication */
+	if (_to_input_rc == NULL) {
+		_to_input_rc = orb_advertise(ORB_ID(input_rc), &rc_val);
+
+	} else {
+		orb_publish(ORB_ID(input_rc), _to_input_rc, &rc_val);
+	}
+
+	return OK;
+}
+
+int RC_Driver::io_publish_pwm_outputs()
+{
+	/* data we are going to fetch */
+	actuator_outputs_s outputs = {};
+	multirotor_motor_limits_s motor_limits;
+
+	outputs.timestamp = hrt_absolute_time();
+
+	/* get servo values from IO */
+	uint16_t ctl[_max_actuators];
+	int ret = io_reg_get(PX4IO_PAGE_SERVOS, 0, ctl, _max_actuators);
+
+	if (ret != OK) {
+		return ret;
+	}
+
+	/* convert from register format to float */
+	for (unsigned i = 0; i < _max_actuators; i++) {
+		outputs.output[i] = ctl[i];
+	}
+
+	outputs.noutputs = _max_actuators;
+
+	/* lazily advertise on first publication */
+	if (_to_outputs == NULL) {
+		int instance;
+		_to_outputs = orb_advertise_multi(ORB_ID(actuator_outputs),
+						  &outputs, &instance, ORB_PRIO_MAX);
+
+	} else {
+		orb_publish(ORB_ID(actuator_outputs), _to_outputs, &outputs);
+	}
+
+	/* get mixer status flags from IO */
+	uint16_t mixer_status;
+	ret = io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_MIXER, &mixer_status, sizeof(mixer_status) / sizeof(uint16_t));
+	memcpy(&motor_limits, &mixer_status, sizeof(motor_limits));
+
+	if (ret != OK) {
+		return ret;
+	}
+
+	/* publish mixer status */
+	if (_to_mixer_status == NULL) {
+		_to_mixer_status = orb_advertise(ORB_ID(multirotor_motor_limits), &motor_limits);
+
+	} else {
+		orb_publish(ORB_ID(multirotor_motor_limits), _to_mixer_status, &motor_limits);
+	}
+
+	return OK;
+}
+
+int RC_Driver::io_set_arming_state()
+{
+	actuator_armed_s	armed;		///< system armed state
+	vehicle_control_mode_s	control_mode;	///< vehicle_control_mode
+
+	int have_armed = orb_copy(ORB_ID(actuator_armed), _t_actuator_armed, &armed);
+	int have_control_mode = orb_copy(ORB_ID(vehicle_control_mode), _t_vehicle_control_mode, &control_mode);
+	_in_esc_calibration_mode = armed.in_esc_calibration_mode;
+
+	uint16_t set = 0;
+	uint16_t clear = 0;
+
+	if (have_armed == OK) {
+		_in_esc_calibration_mode = armed.in_esc_calibration_mode;
+
+		if (armed.armed || _in_esc_calibration_mode) {
+			set |= PX4IO_P_SETUP_ARMING_FMU_ARMED;
+
+		} else {
+			clear |= PX4IO_P_SETUP_ARMING_FMU_ARMED;
+		}
+
+		if (armed.lockdown && !_lockdown_override) {
+			set |= PX4IO_P_SETUP_ARMING_LOCKDOWN;
+			_lockdown_override = true;
+
+		} else if (!armed.lockdown && _lockdown_override) {
+			clear |= PX4IO_P_SETUP_ARMING_LOCKDOWN;
+			_lockdown_override = false;
+		}
+
+		/* Do not set failsafe if circuit breaker is enabled */
+		if (armed.force_failsafe && !_cb_flighttermination) {
+			set |= PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE;
+
+		} else {
+			clear |= PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE;
+		}
+
+		// XXX this is for future support in the commander
+		// but can be removed if unneeded
+		// if (armed.termination_failsafe) {
+		// 	set |= PX4IO_P_SETUP_ARMING_TERMINATION_FAILSAFE;
+		// } else {
+		// 	clear |= PX4IO_P_SETUP_ARMING_TERMINATION_FAILSAFE;
+		// }
+
+		if (armed.ready_to_arm) {
+			set |= PX4IO_P_SETUP_ARMING_IO_ARM_OK;
+
+		} else {
+			clear |= PX4IO_P_SETUP_ARMING_IO_ARM_OK;
+		}
+	}
+
+	if (have_control_mode == OK) {
+		if (control_mode.flag_external_manual_override_ok) {
+			set |= PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK;
+
+		} else {
+			clear |= PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK;
+		}
+	}
+
+	if (_last_written_arming_s != set || _last_written_arming_c != clear) {
+		_last_written_arming_s = set;
+		_last_written_arming_c = clear;
+		return io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, clear, set);
+	}
+
+	return 0;
+}
+
+
+void RC_Driver::task_main()
+{
 	hrt_abstime poll_last = 0;
 	hrt_abstime orb_check_last = 0;
 
-	_mavlink_fd = ::open(MAVLINK_LOG_DEVICE, 0);
+	//_mavlink_fd = ::open(MAVLINK_LOG_DEVICE, 0);
 
 	/*
 	 * Subscribe to the appropriate PWM output topic based on whether we are the
@@ -708,20 +1120,276 @@ void RC_Driver::task_main()
 		goto out;
 	}
 
+	/* Fetch initial flight termination circuit breaker state */
+	_cb_flighttermination = circuit_breaker_enabled("CBRK_FLIGHTTERM", CBRK_FLIGHTTERM_KEY);
+
+	/* poll descriptor */
+	pollfd fds[1];
+	fds[0].fd = _t_actuator_controls_0;
+	fds[0].events = POLLIN;
+
+	_param_update_force = true;
+
+	/* lock against the ioctl handler */
+	//lock();
+
 	while(!_task_should_exit)
 	{
-		/****************************************/
-		//io_reg_get();
-		sleep(1);
+		/* adjust update interval */
+		if (_update_interval != 0) {
+			if (_update_interval < UPDATE_INTERVAL_MIN) {
+				_update_interval = UPDATE_INTERVAL_MIN;
+			}
+
+			if (_update_interval > 100) {
+				_update_interval = 100;
+			}
+
+			orb_set_interval(_t_actuator_controls_0, _update_interval);
+			/*
+			 * NOT changing the rate of groups 1-3 here, because only attitude
+			 * really needs to run fast.
+			 */
+			_update_interval = 0;
+		}
+
+		/* sleep waiting for topic updates, but no more than 20ms */
+		//unlock();
+		int ret = ::poll(fds, 1, 20);
+		//lock();
+
+		/* this would be bad... */
+		if (ret < 0) {
+			warnx("poll error %d", errno);
+			continue;
+		}
+
+		//perf_begin(_perf_update);
+		hrt_abstime now = hrt_absolute_time();
+
+		/* if we have new control data from the ORB, handle it */
+		if (fds[0].revents & POLLIN) {
+
+			/* we're not nice to the lower-priority control groups and only check them
+			   when the primary group updated (which is now). */
+			(void)io_set_control_groups();
+		}
+
+		if (now >= poll_last + IO_POLL_INTERVAL) {
+			/* run at 50-250Hz */
+			poll_last = now;
+
+			/* pull status and alarms from IO */
+			io_get_status();
+
+			/* get raw R/C input from IO */
+			io_publish_raw_rc();
+
+			/* fetch PWM outputs from IO */
+			io_publish_pwm_outputs();
+
+			/* check updates on uORB topics and handle it */
+			bool updated = false;
+
+			/* arming state */
+			orb_check(_t_actuator_armed, &updated);
+
+			if (!updated) {
+				orb_check(_t_vehicle_control_mode, &updated);
+			}
+
+			if (updated) {
+				io_set_arming_state();
+			}
+		}
+
+		if (now >= orb_check_last + ORB_CHECK_INTERVAL) {
+			/* run at 5Hz */
+			orb_check_last = now;
+
+			/* try to claim the MAVLink log FD */
+			if (_mavlink_fd < 0) {
+				_mavlink_fd = ::open(MAVLINK_LOG_DEVICE, 0);
+			}
+
+			/* check updates on uORB topics and handle it */
+			bool updated = false;
+
+			/* vehicle command */
+			orb_check(_t_vehicle_command, &updated);
+
+			if (updated) {
+				struct vehicle_command_s cmd;
+				orb_copy(ORB_ID(vehicle_command), _t_vehicle_command, &cmd);
+
+				// Check for a DSM pairing command
+				/*if (((unsigned int)cmd.command == vehicle_command_s::VEHICLE_CMD_START_RX_PAIR) && ((int)cmd.param1 == 0)) {
+					dsm_bind_ioctl((int)cmd.param2);
+				}*/
+			}
+
+			/*
+			 * If parameters have changed, re-send RC mappings to IO
+			 *
+			 * XXX this may be a bit spammy
+			 */
+			orb_check(_t_param, &updated);
+
+			if (updated || _param_update_force) {
+				_param_update_force = false;
+				parameter_update_s pupdate;
+				orb_copy(ORB_ID(parameter_update), _t_param, &pupdate);
+
+				//int32_t dsm_bind_val;
+				//param_t dsm_bind_param;
+
+				/* see if bind parameter has been set, and reset it to -1 */
+				//param_get(dsm_bind_param = param_find("RC_DSM_BIND"), &dsm_bind_val);
+
+				/*if (dsm_bind_val > -1) {
+					dsm_bind_ioctl(dsm_bind_val);
+					dsm_bind_val = -1;
+					param_set(dsm_bind_param, &dsm_bind_val);
+				}*/
+
+				/* re-upload RC input config as it may have changed */
+				io_set_rc_config();
+
+				/* re-set the battery scaling */
+				//int32_t voltage_scaling_val;
+				//param_t voltage_scaling_param;
+
+				/* set battery voltage scaling */
+				//param_get(voltage_scaling_param = param_find("BAT_V_SCALE_IO"), &voltage_scaling_val);
+
+				/* send scaling voltage to IO */
+				//uint16_t scaling = voltage_scaling_val;
+				//int pret = io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_VBATT_SCALE, &scaling, 1);
+
+				/*if (pret != OK) {
+					mavlink_and_console_log_critical(_mavlink_fd, "IO vscale upload failed");
+				}*/
+
+				/* send RC throttle failsafe value to IO */
+				int pret;
+				int32_t failsafe_param_val;
+				param_t failsafe_param = param_find("RC_FAILS_THR");
+
+				if (failsafe_param != PARAM_INVALID) {
+
+					param_get(failsafe_param, &failsafe_param_val);
+
+					if (failsafe_param_val > 0) {
+
+						uint16_t failsafe_thr = failsafe_param_val;
+						pret = io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_RC_THR_FAILSAFE_US, &failsafe_thr, 1);
+
+						if (pret != OK) {
+							mavlink_and_console_log_critical(_mavlink_fd, "failsafe upload failed, FS: %d us", (int)failsafe_thr);
+						}
+					}
+				}
+
+				int32_t safety_param_val;
+				param_t safety_param = param_find("RC_FAILS_THR");
+
+				if (safety_param != PARAM_INVALID) {
+
+					param_get(safety_param, &safety_param_val);
+
+					if (safety_param_val == PX4IO_FORCE_SAFETY_MAGIC) {
+						/* disable IO safety if circuit breaker asked for it */
+						(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FORCE_SAFETY_OFF, safety_param_val);
+					}
+				}
+
+				/* Check if the flight termination circuit breaker has been updated */
+				_cb_flighttermination = circuit_breaker_enabled("CBRK_FLIGHTTERM", CBRK_FLIGHTTERM_KEY);
+
+				param_get(param_find("RC_RSSI_PWM_CHAN"), &_rssi_pwm_chan);
+				param_get(param_find("RC_RSSI_PWM_MAX"), &_rssi_pwm_max);
+				param_get(param_find("RC_RSSI_PWM_MIN"), &_rssi_pwm_min);
+
+				/*
+				 * Set invert mask for PWM outputs (does not apply to S.Bus)
+				 */
+				int16_t pwm_invert_mask = 0;
+
+				for (unsigned i = 0; i < _max_actuators; i++) {
+					char pname[16];
+					int32_t ival;
+
+					/* fill the channel reverse mask from parameters */
+					sprintf(pname, "PWM_MAIN_REV%d", i + 1);
+					param_t param_h = param_find(pname);
+
+					if (param_h != PARAM_INVALID) {
+						param_get(param_h, &ival);
+						pwm_invert_mask |= ((int16_t)(ival != 0)) << i;
+					}
+				}
+
+				(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_REVERSE, pwm_invert_mask);
+
+				float trim_val;
+				param_t parm_handle;
+
+				parm_handle = param_find("TRIM_ROLL");
+
+				if (parm_handle != PARAM_INVALID) {
+					param_get(parm_handle, &trim_val);
+					(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_TRIM_ROLL, FLOAT_TO_REG(trim_val));
+				}
+
+				parm_handle = param_find("TRIM_PITCH");
+
+				if (parm_handle != PARAM_INVALID) {
+					param_get(parm_handle, &trim_val);
+					(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_TRIM_PITCH, FLOAT_TO_REG(trim_val));
+				}
+
+				parm_handle = param_find("TRIM_YAW");
+
+				if (parm_handle != PARAM_INVALID) {
+					param_get(parm_handle, &trim_val);
+					(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_TRIM_YAW, FLOAT_TO_REG(trim_val));
+				}
+
+				/* S.BUS output */
+				/*int sbus_mode;
+				parm_handle = param_find("PWM_SBUS_MODE");
+
+				if (parm_handle != PARAM_INVALID) {
+					param_get(parm_handle, &sbus_mode);
+
+					if (sbus_mode == 1) {
+						(void)io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FEATURES, 0, PX4IO_P_SETUP_FEATURES_SBUS1_OUT);
+
+					} else if (sbus_mode == 2) {
+						(void)io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FEATURES, 0, PX4IO_P_SETUP_FEATURES_SBUS2_OUT);
+
+					} else {
+						(void)io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FEATURES,
+								    (PX4IO_P_SETUP_FEATURES_SBUS1_OUT | PX4IO_P_SETUP_FEATURES_SBUS2_OUT), 0);
+					}
+				}*/
+			}
+
+		}
+
+		//perf_end(_perf_update);
 	}
+
+	//unlock();
+
 
 out:
-	DEVICE_DEBUG("exiting");
+	warnx("exiting");
 
 	/* clean up the alternate device node */
-	if (_primary_pwm_device) {
-		unregister_driver(PWM_OUTPUT0_DEVICE_PATH);
-	}
+	/*if (_primary_pwm_device) {
+		delete PWM_dev;
+	}*/
 
 	/* tell the dtor that we are exiting */
 	_task = -1;
@@ -988,6 +1656,20 @@ int RC_Driver::start()
 	if (circuit_breaker_enabled("CBRK_IO_SAFETY", CBRK_IO_SAFETY_KEY)) {
 		(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FORCE_SAFETY_OFF, PX4IO_FORCE_SAFETY_MAGIC);
 	}
+
+	/* try to claim the generic PWM output device node as well - it's OK if we fail at this */
+	//ret = register_driver(PWM_OUTPUT0_DEVICE_PATH, &fops, 0666, (void *)this);
+
+	/*ret = PWM_dev->init();
+	if (ret == OK) {
+		DEVICE_LOG("default PWM output device");
+		_primary_pwm_device = true;
+	}
+	else
+	{
+		printf("pwm device init failed\n");
+	}*/
+
 
 	// start the IO interface task
 	_task = px4_task_spawn_cmd("ts7500io",
