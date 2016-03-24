@@ -53,6 +53,10 @@
 #define _SBUS_BASE		0x2c00
 
 /** Enable S.BUS version 1 / 2 output (0 to disable) */
+#ifndef __PX4_POSIX
 #define SBUS_SET_PROTO_VERSION		_IOC(_SBUS_BASE, 0)
+#else
+#define SBUS_SET_PROTO_VERSION		_IO(_SBUS_BASE, 0)
+#endif
 
 #endif /* _DRV_SBUS_H */

@@ -157,7 +157,11 @@
  * applications using GPIOs should be aware of this.
  */
 #define _GPIOCBASE	0x2700
+#ifndef __PX4_POSIX
 #define GPIOC(_x)	_IOC(_GPIOCBASE, _x)
+#else
+#define GPIOC(_x)	_IO(_GPIOCBASE, _x)
+#endif
 
 /** reset all board GPIOs to their default state */
 #define GPIO_RESET	GPIOC(0)

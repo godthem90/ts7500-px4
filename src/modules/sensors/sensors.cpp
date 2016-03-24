@@ -923,13 +923,13 @@ Sensors::parameters_update()
 
 	/* update barometer qnh setting */
 	param_get(_parameter_handles.baro_qnh, &(_parameters.baro_qnh));
-	DevHandle h_baro;
-	DevMgr::getHandle(BARO0_DEVICE_PATH, h_baro);
+	/*DevHandle h_baro;
+	DevMgr::getHandle(BARO0_DEVICE_PATH, h_baro);*/
 
 #ifndef __PX4_QURT
 
 	// TODO: this needs fixing for QURT
-	if (!h_baro.isValid()) {
+	/*if (!h_baro.isValid()) {
 		warnx("ERROR: no barometer found on %s (%d)", BARO0_DEVICE_PATH, h_baro.getError());
 		return ERROR;
 
@@ -940,7 +940,7 @@ Sensors::parameters_update()
 			warnx("qnh could not be set");
 			return ERROR;
 		}
-	}
+	}*/
 
 #endif
 
@@ -970,6 +970,7 @@ Sensors::accel_poll(struct sensor_combined_s &raw)
 		orb_check(_accel_sub[i], &accel_updated);
 
 		if (accel_updated) {
+			printf("accel updated!!\n");
 			struct accel_report	accel_report;
 
 			orb_copy(ORB_ID(sensor_accel), _accel_sub[i], &accel_report);
@@ -1009,6 +1010,7 @@ Sensors::gyro_poll(struct sensor_combined_s &raw)
 		orb_check(_gyro_sub[i], &gyro_updated);
 
 		if (gyro_updated) {
+			printf("gyro updated!!\n");
 			struct gyro_report	gyro_report;
 
 			orb_copy(ORB_ID(sensor_gyro), _gyro_sub[i], &gyro_report);
@@ -1053,6 +1055,7 @@ Sensors::mag_poll(struct sensor_combined_s &raw)
 		orb_check(_mag_sub[i], &mag_updated);
 
 		if (mag_updated) {
+			printf("mag updated!!\n");
 			struct mag_report	mag_report;
 
 			orb_copy(ORB_ID(sensor_mag), _mag_sub[i], &mag_report);
@@ -1084,6 +1087,7 @@ Sensors::baro_poll(struct sensor_combined_s &raw)
 		orb_check(_baro_sub[i], &baro_updated);
 
 		if (baro_updated) {
+			printf("baro updated!!\n");
 
 			orb_copy(ORB_ID(sensor_baro), _baro_sub[i], &_barometer);
 
@@ -1760,6 +1764,7 @@ Sensors::rc_poll()
 	orb_check(_rc_sub, &rc_updated);
 
 	if (rc_updated) {
+		printf("rc updated!!\n");
 		/* read low-level values from FMU or IO RC inputs (PPM, Spektrum, S.Bus) */
 		struct rc_input_values rc_input;
 
@@ -1979,14 +1984,14 @@ Sensors::task_main()
 	int ret = 0;
 
 	/* This calls a sensors_init which can have different implementations on NuttX, POSIX, QURT. */
-	ret = sensors_init();
+	//ret = sensors_init();
 
 #ifndef __PX4_QURT
 	// TODO: move adc_init into the sensors_init call.
-	ret = ret || adc_init();
+	//ret = ret || adc_init();
 #endif
 
-	if (ret) {
+	/*if (ret) {
 		warnx("sensor initialization failed");
 		_sensors_task = -1;
 
@@ -1994,7 +1999,7 @@ Sensors::task_main()
 
 		exit(0);
 		//return;
-	}
+	}*/
 
 	struct sensor_combined_s raw = {};
 
@@ -2133,13 +2138,10 @@ Sensors::task_main()
 			}
 		}
 
-		/* check battery voltage */
-		adc_poll(raw);
-
-		diff_pres_poll(raw);
 
 		/* Inform other processes that new data is available to copy */
 		if (_publishing && raw.timestamp > 0) {
+			printf("sensor_combined publishing!!\n");
 			orb_publish(ORB_ID(sensor_combined), _sensor_pub, &raw);
 		}
 

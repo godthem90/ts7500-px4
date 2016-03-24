@@ -48,6 +48,21 @@
 namespace math
 {
 
+LowPassFilter2p::LowPassFilter2p(float sample_freq, float cutoff_freq) : 
+	_cutoff_freq(cutoff_freq),
+	_a1(0.0f),
+	_a2(0.0f),
+	_b0(0.0f),
+	_b1(0.0f),
+	_b2(0.0f),
+	_delay_element_1(0.0f),
+	_delay_element_2(0.0f)
+{
+	// set initial parameters
+	set_cutoff_frequency(sample_freq, cutoff_freq);
+}
+
+
 void LowPassFilter2p::set_cutoff_frequency(float sample_freq, float cutoff_freq)
 {
     _cutoff_freq = cutoff_freq;

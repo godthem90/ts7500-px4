@@ -247,8 +247,6 @@ RingBuffer::force(double val)
 }
 
 // FIXME - clang crashes on this get() call
-#ifdef __PX4_QURT
-#define __PX4_SBCAP my_sync_bool_compare_and_swap
 static inline bool my_sync_bool_compare_and_swap(volatile unsigned *a, unsigned b, unsigned c)
 {
 	if (*a == b) {
@@ -259,9 +257,6 @@ static inline bool my_sync_bool_compare_and_swap(volatile unsigned *a, unsigned 
 	return false;
 }
 
-#else
-#define __PX4_SBCAP __sync_bool_compare_and_swap
-#endif
 bool
 RingBuffer::get(void *val, size_t val_size)
 {
@@ -286,7 +281,7 @@ RingBuffer::get(void *val, size_t val_size)
 			}
 
 			/* if the tail pointer didn't change, we got our item */
-		} while (!__PX4_SBCAP(&_tail, candidate, next));
+		} while (!my_sync_bool_compare_and_swap(&_tail, candidate, next));
 
 		return true;
 
