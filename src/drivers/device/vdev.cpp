@@ -138,6 +138,7 @@ VDev::register_class_devname(const char *class_devname)
 int
 VDev::register_driver(const char *name, void *data)
 {
+	//printf("VDev::register_driver %s\n", name);
 	PX4_DEBUG("VDev::register_driver %s", name);
 	int ret = -ENOSPC;
 
@@ -153,6 +154,7 @@ VDev::register_driver(const char *name, void *data)
 	for (int i = 0; i < PX4_MAX_DEV; ++i) {
 		if (devmap[i] && (strcmp(devmap[i]->name, name) == 0)) {
 			pthread_mutex_unlock(&devmutex);
+			//printf("already exist!!\n");
 			return -EEXIST;
 		}
 	}
@@ -160,6 +162,10 @@ VDev::register_driver(const char *name, void *data)
 	for (int i = 0; i < PX4_MAX_DEV; ++i) {
 		if (devmap[i] == NULL) {
 			devmap[i] = new px4_dev_t(name, (void *)data);
+			/*if(!devmap[i])
+				printf("px4_dev_t alloc failed...\n");
+			else
+				printf("Registered DEV %s\n", name);*/
 			PX4_DEBUG("Registered DEV %s", name);
 			ret = PX4_OK;
 			break;

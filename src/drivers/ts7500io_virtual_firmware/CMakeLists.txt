@@ -31,13 +31,17 @@
 #
 ############################################################################
 px4_add_module(
-	MODULE drivers__ts7500io
-	MAIN ts7500io
+	MODULE drivers__ts7500io_virtual_firmware
+	MAIN ts7500io_virtual_firmware
 	STACK 1800
 	COMPILE_FLAGS
 		-Os
 	SRCS
-		ts7500io.cpp
+		ts7500io_virtual_firmware.cpp
+		virtual_register.cpp
+		mixer.cpp
+		controls.cpp
+		sbus.cpp
 #		px4io_uploader.cpp
 #		px4io_serial.cpp
 #		px4io_i2c.cpp

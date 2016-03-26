@@ -70,6 +70,7 @@
 #include <drivers/drv_gpio.h>
 #include <drivers/drv_sbus.h>
 #include <drivers/drv_mixer.h>
+#include <drivers/ts7500io_virtual_firmware/virtual_register.h>
 
 #include <systemlib/param/param.h>
 #include <systemlib/circuit_breaker.h>
@@ -94,9 +95,6 @@
 
 #include <mavlink/mavlink_log.h>
 #include "modules/dataman/dataman.h"
-
-#include "sbus.h"
-#include "virtual_register.h"
 
 /*#include <crc32.h>
 
@@ -162,6 +160,7 @@ private:
 	volatile int _task;
 	volatile bool _task_should_exit;
 
+	int			_ts7500io_fd;
 	int			_mavlink_fd;		///< mavlink file descriptor.
 
 	uint16_t		_status;		///< Various IO status flags
@@ -344,7 +343,7 @@ private:
 RC_Driver *rc_dev = NULL;
 
 RC_Driver::RC_Driver() :
-	VDev("ts7500io", "/dev/ts7500io")
+	VDev("ts7500io", TS7500IO_DEVICE_PATH)
 {
 	//PWM_dev = new device::VDev("pwm-dev", PWM_OUTPUT0_DEVICE_PATH);
 	_hardware = 0;
@@ -359,6 +358,7 @@ RC_Driver::RC_Driver() :
 	_rc_last_valid = 0;
 	_task = -1;
 	_task_should_exit = false;
+	_ts7500io_fd = -1;
 	_mavlink_fd = -1;
 	_status = 0;
 	_alarms = 0;
@@ -694,14 +694,14 @@ int RC_Driver::ioctl(device::file_t *filep, int cmd, unsigned long arg)
 		}
 
 	case PWM_SERVO_GET_RATEGROUP(0) ... PWM_SERVO_GET_RATEGROUP(PWM_OUTPUT_MAX_CHANNELS - 1): {
-
-			unsigned channel = cmd - PWM_SERVO_GET_RATEGROUP(0);
+			// jjh deprecated
+			/*unsigned channel = cmd - PWM_SERVO_GET_RATEGROUP(0);
 
 			*(uint32_t *)arg = io_reg_get(PX4IO_PAGE_PWM_INFO, PX4IO_RATE_MAP_BASE + channel);
 
 			if (*(uint32_t *)arg == _io_reg_get_error) {
 				ret = -EIO;
-			}
+			}*/
 
 			break;
 		}
@@ -833,8 +833,9 @@ int RC_Driver::ioctl(device::file_t *filep, int cmd, unsigned long arg)
 			return -EINVAL;
 		}
 
+		// jjh deprecated
 		/* reboot into bootloader - arg must be PX4IO_REBOOT_BL_MAGIC */
-		io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_REBOOT_BL, arg);
+		//io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_REBOOT_BL, arg);
 		// we don't expect a reply from this operation
 		ret = OK;
 		break;
@@ -848,10 +849,11 @@ int RC_Driver::ioctl(device::file_t *filep, int cmd, unsigned long arg)
 				return ret;
 			}
 
-			if (io_crc != arg) {
+			// jjh deprecated - there is virtual firmware, no need to check crc
+			/*if (io_crc != arg) {
 				DEVICE_DEBUG("crc mismatch 0x%08x 0x%08x", (unsigned)io_crc, arg);
 				return -EINVAL;
-			}
+			}*/
 
 			break;
 		}
@@ -965,21 +967,10 @@ int RC_Driver::io_reg_get(uint8_t page, uint8_t offset, uint16_t *values, unsign
 
 	//int ret = _interface->read((page << 8) | offset, reinterpret_cast<void *>(values), num_values);
 
-	int i;
-	/*if( page == 0 )
-	{
-		sbuslock();
-		for( i = 0; i < num_values; i++ )
-			*(values + i) = sbus_peek16((page << 8) | offset + i*sizeof(*values));
-		sbusunlock();
-	}
-	else
-	{*/
-		//virtual_lock();
-		for( i = 0; i < num_values; i+=sizeof(values) )
-			*(values + i) = get_virtual_reg(page, offset + i);
-		//virtual_unlock();
-	//}
+	get_virtual_register(page, offset, values, num_values);
+	/*int i;
+	for( i = 0; i < num_values; i++ )
+		printf("get - page : %d, offset : %d, values : 0x%x\n", page, offset+i, *(values+i));*/
 
 	/*if (ret != (int)num_values) {
 		printf("io_reg_get(%u,%u,%u): data error %d", page, offset, num_values, ret);
@@ -1002,6 +993,9 @@ uint32_t RC_Driver::io_reg_get(uint8_t page, uint8_t offset)
 
 int RC_Driver::io_reg_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num_values)
 {
+/*	int i;
+	for( i = 0; i < num_values; i++ )
+		printf("set - page : %d, offset : %d, values : 0x%x\n", page, offset+i, *(values+i));*/
 	/* range check the transfer */
 	if (num_values > ((_max_transfer) / sizeof(*values))) {
 		printf("io_reg_set: too many registers (%u, max %u)", num_values, _max_transfer / 2);
@@ -1010,21 +1004,7 @@ int RC_Driver::io_reg_set(uint8_t page, uint8_t offset, const uint16_t *values, 
 
 	//int ret =  _interface->write((page << 8) | offset, (void *)values, num_values);
 
-	int i;
-	/*if( page == 0 )
-	{
-		sbuslock();
-		for( i = 0; i < num_values; i++ )
-			sbus_poke16((page << 8) | offset + i*sizeof(*values), *(values + i));
-		sbusunlock();
-	}
-	else
-	{*/
-		//virtual_lock();
-		for( i = 0; i < num_values; i+=sizeof(values) )
-			set_virtual_reg(page, offset + i, *(values + i));
-		//virtual_unlock();
-	//}
+	set_virtual_register(page, offset, values, num_values);
 
 	/*if (ret != (int)num_values) {
 		printf("io_reg_set(%u,%u,%u): error %d", page, offset, num_values, ret);
@@ -1774,6 +1754,14 @@ int RC_Driver::mixer_send(const char *buf, unsigned buflen, unsigned retries)
 
 int RC_Driver::task_main()
 {
+
+	int ret;
+	ret = VDev::init();
+	if (ret != OK) {
+		warnx("VDev setup for ts7500 io device failed!\n");
+	}
+	_ts7500io_fd = px4_open(TS7500IO_DEVICE_PATH, 0);
+
 	hrt_abstime poll_last = 0;
 	hrt_abstime orb_check_last = 0;
 

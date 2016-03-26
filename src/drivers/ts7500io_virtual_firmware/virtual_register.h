@@ -353,8 +353,58 @@ struct IOPacket {
 #define PWM_DEFAULT_MIN 1000
 #define PWM_DEFAULT_MAX 2000
 
-uint16_t get_virtual_reg(uint8_t page, uint8_t offset);
-void set_virtual_reg(uint8_t page, uint8_t offset, uint16_t dat);
+/*
+ * Register aliases.
+ *
+ * Handy aliases for registers that are widely used.
+ */
+#define r_status_flags		r_page_status[PX4IO_P_STATUS_FLAGS]
+#define r_status_alarms		r_page_status[PX4IO_P_STATUS_ALARMS]
+
+#define r_raw_rc_count		r_page_raw_rc_input[PX4IO_P_RAW_RC_COUNT]
+#define r_raw_rc_values		(&r_page_raw_rc_input[PX4IO_P_RAW_RC_BASE])
+#define r_raw_rc_flags		r_page_raw_rc_input[PX4IO_P_RAW_RC_FLAGS]
+#define r_rc_valid			r_page_rc_input[PX4IO_P_RC_VALID]
+#define r_rc_values			(&r_page_rc_input[PX4IO_P_RC_BASE])
+#define r_mixer_limits 		r_page_status[PX4IO_P_STATUS_MIXER]
+
+#define r_setup_features	r_page_setup[PX4IO_P_SETUP_FEATURES]
+#define r_setup_arming		r_page_setup[PX4IO_P_SETUP_ARMING]
+#define r_setup_pwm_rates	r_page_setup[PX4IO_P_SETUP_PWM_RATES]
+#define r_setup_pwm_defaultrate	r_page_setup[PX4IO_P_SETUP_PWM_DEFAULTRATE]
+#define r_setup_pwm_altrate	r_page_setup[PX4IO_P_SETUP_PWM_ALTRATE]
+#ifdef CONFIG_ARCH_BOARD_PX4IO_V1
+#define r_setup_relays		r_page_setup[PX4IO_P_SETUP_RELAYS]
+#endif
+#define r_setup_rc_thr_failsafe	r_page_setup[PX4IO_P_SETUP_RC_THR_FAILSAFE_US]
+
+#define r_setup_pwm_reverse	r_page_setup[PX4IO_P_SETUP_PWM_REVERSE]
+
+#define r_setup_trim_roll	r_page_setup[PX4IO_P_SETUP_TRIM_ROLL]
+#define r_setup_trim_pitch	r_page_setup[PX4IO_P_SETUP_TRIM_PITCH]
+#define r_setup_trim_yaw	r_page_setup[PX4IO_P_SETUP_TRIM_YAW]
+
+#define r_control_values	(&r_page_controls[0])
+
+
+/*
+ * System state structure.
+ */
+struct sys_state_s {
+
+	volatile uint64_t	rc_channels_timestamp_received;
+	volatile uint64_t	rc_channels_timestamp_valid;
+
+	/**
+	 * Last FMU receive time, in microseconds since system boot
+	 */
+	volatile uint64_t	fmu_data_received_time;
+
+};
+
+
+int get_virtual_register(uint8_t page, uint8_t offset, uint16_t *values, unsigned num_values);
+int set_virtual_register(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num_values);
 
 
 static const uint8_t crc8_tab[256] __attribute__((unused)) = {

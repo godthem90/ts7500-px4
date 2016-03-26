@@ -15,6 +15,7 @@ set(config_module_list
 	drivers/device
 	drivers/ts7500io
 	drivers/ts_mpu9250
+	drivers/ts7500io_virtual_firmware
 	platforms/common
 	platforms/posix/px4_layer
 	platforms/posix/work_queue

@@ -54,10 +54,7 @@
 #include <systemlib/mixer/mixer.h>
 #include <uORB/topics/actuator_controls.h>
 
-extern "C" {
-//#define DEBUG
-#include "px4io.h"
-}
+#include "ts7500io_virtual_firmware.h"
 
 /*
  * Maximum interval in us before FMU signal is considered lost
@@ -71,8 +68,6 @@ static bool should_arm = false;
 static bool should_arm_nothrottle = false;
 static bool should_always_enable_pwm = false;
 static volatile bool in_mixer = false;
-
-extern int _sbus_fd;
 
 /* selected control values and count for mixing */
 enum mixer_source {
@@ -251,6 +246,16 @@ mixer_tick(void)
 		mixed = mixer_group.mix(&outputs[0], PX4IO_SERVO_COUNT, &r_mixer_limits);
 		in_mixer = false;
 
+		printf("servo num : %d\n",mixed);
+		printf("output 1 val : %lf\n",outputs[0]);
+		printf("output 2 val : %lf\n",outputs[1]);
+		printf("output 3 val : %lf\n",outputs[2]);
+		printf("output 4 val : %lf\n",outputs[3]);
+		printf("output 5 val : %lf\n",outputs[4]);
+		printf("output 6 val : %lf\n",outputs[5]);
+		printf("output 7 val : %lf\n",outputs[6]);
+		printf("output 8 val : %lf\n",outputs[7]);
+
 		/* the pwm limit call takes care of out of band errors */
 		pwm_limit_calc(should_arm, should_arm_nothrottle, mixed, r_setup_pwm_reverse, r_page_servo_disarmed,
 			       r_page_servo_control_min, r_page_servo_control_max, outputs, r_page_servos, &pwm_limit);
@@ -265,6 +270,15 @@ mixer_tick(void)
 		for (unsigned i = 0; i < PX4IO_SERVO_COUNT; i++) {
 			r_page_actuators[i] = FLOAT_TO_REG(outputs[i]);
 		}
+
+		/*printf("actuator 1 val : %d, servo 1 val : %d\n",r_page_actuators[0], r_page_servos[0]);
+		printf("actuator 2 val : %d, servo 2 val : %d\n",r_page_actuators[1], r_page_servos[1]);
+		printf("actuator 3 val : %d, servo 3 val : %d\n",r_page_actuators[2], r_page_servos[2]);
+		printf("actuator 4 val : %d, servo 4 val : %d\n",r_page_actuators[3], r_page_servos[3]);
+		printf("actuator 5 val : %d, servo 5 val : %d\n",r_page_actuators[4], r_page_servos[4]);
+		printf("actuator 6 val : %d, servo 6 val : %d\n",r_page_actuators[5], r_page_servos[5]);
+		printf("actuator 7 val : %d, servo 7 val : %d\n",r_page_actuators[6], r_page_servos[6]);
+		printf("actuator 8 val : %d, servo 8 val : %d\n",r_page_actuators[7], r_page_servos[7]);*/
 	}
 
 	/* set arming */
@@ -277,51 +291,36 @@ mixer_tick(void)
 
 	if (needs_to_arm && !mixer_servos_armed) {
 		/* need to arm, but not armed */
-		up_pwm_servo_arm(true);
+		//up_pwm_servo_arm(true);
+		printf("servo armed!!\n");
 		mixer_servos_armed = true;
 		r_status_flags |= PX4IO_P_STATUS_FLAGS_OUTPUTS_ARMED;
-		isr_debug(5, "> PWM enabled");
+		//isr_debug(5, "> PWM enabled");
 
 	} else if (!needs_to_arm && mixer_servos_armed) {
 		/* armed but need to disarm */
-		up_pwm_servo_arm(false);
+		//up_pwm_servo_arm(false);
+		printf("servo disarmed!!\n");
 		mixer_servos_armed = false;
 		r_status_flags &= ~(PX4IO_P_STATUS_FLAGS_OUTPUTS_ARMED);
-		isr_debug(5, "> PWM disabled");
+		//isr_debug(5, "> PWM disabled");
 	}
 
 	if (mixer_servos_armed && (should_arm || should_arm_nothrottle)
 	    && !(r_setup_arming & PX4IO_P_SETUP_ARMING_LOCKDOWN)) {
 		/* update the servo outputs. */
 		for (unsigned i = 0; i < PX4IO_SERVO_COUNT; i++) {
-			up_pwm_servo_set(i, r_page_servos[i]);
-		}
-
-		/* set S.BUS1 or S.BUS2 outputs */
-
-		if (r_setup_features & PX4IO_P_SETUP_FEATURES_SBUS2_OUT) {
-			sbus2_output(_sbus_fd, r_page_servos, PX4IO_SERVO_COUNT);
-
-		} else if (r_setup_features & PX4IO_P_SETUP_FEATURES_SBUS1_OUT) {
-			sbus1_output(_sbus_fd, r_page_servos, PX4IO_SERVO_COUNT);
+			//up_pwm_servo_set(i, r_page_servos[i]);
+			//printf("servo set to %d!!\n",r_page_servos[i]);
 		}
 
 	} else if (mixer_servos_armed && (should_always_enable_pwm
 					  || (r_setup_arming & PX4IO_P_SETUP_ARMING_LOCKDOWN))) {
 		/* set the disarmed servo outputs. */
 		for (unsigned i = 0; i < PX4IO_SERVO_COUNT; i++) {
-			up_pwm_servo_set(i, r_page_servo_disarmed[i]);
+			//up_pwm_servo_set(i, r_page_servo_disarmed[i]);
 			/* copy values into reporting register */
 			r_page_servos[i] = r_page_servo_disarmed[i];
-		}
-
-		/* set S.BUS1 or S.BUS2 outputs */
-		if (r_setup_features & PX4IO_P_SETUP_FEATURES_SBUS1_OUT) {
-			sbus1_output(_sbus_fd, r_page_servo_disarmed, PX4IO_SERVO_COUNT);
-		}
-
-		if (r_setup_features & PX4IO_P_SETUP_FEATURES_SBUS2_OUT) {
-			sbus2_output(_sbus_fd, r_page_servo_disarmed, PX4IO_SERVO_COUNT);
 		}
 	}
 }
@@ -448,7 +447,7 @@ mixer_handle_text(const void *buffer, size_t length)
 
 	px4io_mixdata	*msg = (px4io_mixdata *)buffer;
 
-	isr_debug(2, "mix txt %u", length);
+	//isr_debug(2, "mix txt %u", length);
 
 	if (length < sizeof(px4io_mixdata)) {
 		return 0;
@@ -458,7 +457,7 @@ mixer_handle_text(const void *buffer, size_t length)
 
 	switch (msg->action) {
 	case F2I_MIXER_ACTION_RESET:
-		isr_debug(2, "reset");
+		//isr_debug(2, "reset");
 
 		/* THEN actually delete it */
 		mixer_group.reset();
@@ -466,7 +465,7 @@ mixer_handle_text(const void *buffer, size_t length)
 
 	/* FALLTHROUGH */
 	case F2I_MIXER_ACTION_APPEND:
-		isr_debug(2, "append %d", length);
+		//isr_debug(2, "append %d", length);
 
 		/* check for overflow - this would be really fatal */
 		if ((mixer_text_length + text_length + 1) > sizeof(mixer_text)) {
@@ -478,7 +477,7 @@ mixer_handle_text(const void *buffer, size_t length)
 		memcpy(&mixer_text[mixer_text_length], msg->text, text_length);
 		mixer_text_length += text_length;
 		mixer_text[mixer_text_length] = '\0';
-		isr_debug(2, "buflen %u", mixer_text_length);
+		//isr_debug(2, "buflen %u", mixer_text_length);
 
 		/* process the text buffer, adding new mixers as their descriptions can be parsed */
 		unsigned resid = mixer_text_length;
@@ -487,7 +486,7 @@ mixer_handle_text(const void *buffer, size_t length)
 		/* if anything was parsed */
 		if (resid != mixer_text_length) {
 
-			isr_debug(2, "used %u", mixer_text_length - resid);
+			//isr_debug(2, "used %u", mixer_text_length - resid);
 
 			/* copy any leftover text to the base of the buffer for re-use */
 			if (resid > 0) {
