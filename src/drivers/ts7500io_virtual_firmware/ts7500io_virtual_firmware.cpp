@@ -198,6 +198,16 @@ void print_page()
 	}
 	printf("\n");
 
+	printf("r_page_controls : \n");
+	for( i = 0; i < PX4IO_CONTROL_GROUPS; i++ )
+	{
+		int j;
+		for( j = 0; j < PX4IO_CONTROL_CHANNELS; j++ )
+			printf("\t%d",r_page_controls[i * PX4IO_CONTROL_CHANNELS + j]);
+		printf("\n");
+	}
+	printf("\n");
+
 }
 
 extern "C" __EXPORT int ts7500io_virtual_firmware_main(int argc, char *argv[]);

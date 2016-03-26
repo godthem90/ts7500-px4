@@ -1535,13 +1535,13 @@ MPU9250::measure()
 	mpu_report.cmd = DIR_READ | MPUREG_INT_STATUS;
 
 	// sensor transfer at high clock speed
-	//set_frequency(MPU9250_HIGH_BUS_SPEED);
+	set_frequency(MPU9250_HIGH_BUS_SPEED);
 
-	/*if (OK != transfer((uint8_t *)&mpu_report, ((uint8_t *)&mpu_report), sizeof(mpu_report))) {
+	if (OK != transfer((uint8_t *)&mpu_report, ((uint8_t *)&mpu_report), sizeof(mpu_report))) {
 		return;
-	}*/
+	}
 
-	//check_registers();
+	check_registers();
 
 	/*
 	   see if this is duplicate accelerometer data. Note that we
@@ -1566,7 +1566,7 @@ MPU9250::measure()
 	 * Convert from big to little endian
 	 */
 
-	/*report.accel_x = int16_t_from_bytes(mpu_report.accel_x);
+	report.accel_x = int16_t_from_bytes(mpu_report.accel_x);
 	report.accel_y = int16_t_from_bytes(mpu_report.accel_y);
 	report.accel_z = int16_t_from_bytes(mpu_report.accel_z);
 
@@ -1574,17 +1574,7 @@ MPU9250::measure()
 
 	report.gyro_x = int16_t_from_bytes(mpu_report.gyro_x);
 	report.gyro_y = int16_t_from_bytes(mpu_report.gyro_y);
-	report.gyro_z = int16_t_from_bytes(mpu_report.gyro_z);*/
-
-	report.accel_x = 0;
-	report.accel_y = 0;
-	report.accel_z = -1000;
-
-	report.temp = 0;
-
-	report.gyro_x = 0;
-	report.gyro_y = 0;
-	report.gyro_z = 0;
+	report.gyro_z = int16_t_from_bytes(mpu_report.gyro_z);
 
 	if (report.accel_x == 0 &&
 	    report.accel_y == 0 &&

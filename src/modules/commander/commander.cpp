@@ -1138,7 +1138,7 @@ int commander_thread_main(int argc, char *argv[])
 	pthread_t commander_low_prio_thread;
 
 	/* initialize */
-	if (led_init() != OK) {
+	/*if (led_init() != OK) {
 		mavlink_and_console_log_critical(mavlink_fd, "ERROR: LED INIT FAIL");
 	}
 
@@ -1148,7 +1148,7 @@ int commander_thread_main(int argc, char *argv[])
 
 	if (battery_init() != OK) {
 		mavlink_and_console_log_critical(mavlink_fd, "ERROR: BATTERY INIT FAIL");
-	}
+	}*/
 	mavlink_fd = px4_open(MAVLINK_LOG_DEVICE, 0);
 
 	/* vehicle status topic */

@@ -1833,11 +1833,18 @@ int RC_Driver::task_main()
 			warnx("poll error %d", errno);
 			continue;
 		}
+		else if (ret == 0)
+		{
+			printf("actuator topic time out\n");
+		}
+		else
+			printf("poll normally\n");
 
 		hrt_abstime now = hrt_absolute_time();
 
 		if (fds[0].revents & POLLIN) {
 
+			printf("set io pwm\n");
 			(void)io_set_control_groups();
 		}
 

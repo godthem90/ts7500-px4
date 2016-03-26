@@ -246,7 +246,7 @@ mixer_tick(void)
 		mixed = mixer_group.mix(&outputs[0], PX4IO_SERVO_COUNT, &r_mixer_limits);
 		in_mixer = false;
 
-		printf("servo num : %d\n",mixed);
+		/*printf("servo num : %d\n",mixed);
 		printf("output 1 val : %lf\n",outputs[0]);
 		printf("output 2 val : %lf\n",outputs[1]);
 		printf("output 3 val : %lf\n",outputs[2]);
@@ -254,7 +254,7 @@ mixer_tick(void)
 		printf("output 5 val : %lf\n",outputs[4]);
 		printf("output 6 val : %lf\n",outputs[5]);
 		printf("output 7 val : %lf\n",outputs[6]);
-		printf("output 8 val : %lf\n",outputs[7]);
+		printf("output 8 val : %lf\n",outputs[7]);*/
 
 		/* the pwm limit call takes care of out of band errors */
 		pwm_limit_calc(should_arm, should_arm_nothrottle, mixed, r_setup_pwm_reverse, r_page_servo_disarmed,
@@ -339,6 +339,7 @@ mixer_callback(uintptr_t handle,
 	case MIX_FMU:
 		if (control_index < PX4IO_CONTROL_CHANNELS && control_group < PX4IO_CONTROL_GROUPS) {
 			control = REG_TO_FLOAT(r_page_controls[CONTROL_PAGE_INDEX(control_group, control_index)]);
+			//printf("r_page_conrols group - %d, index - %d : %f\n", control_group, control_index, control);
 			break;
 		}
 

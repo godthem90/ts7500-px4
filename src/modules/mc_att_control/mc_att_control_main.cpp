@@ -855,6 +855,7 @@ MulticopterAttitudeControl::task_main()
 			float dt = (hrt_absolute_time() - last_run) / 1000000.0f;
 			last_run = hrt_absolute_time();
 
+				printf("1\n");
 			/* guard against too small (< 2ms) and too large (> 20ms) dt's */
 			if (dt < 0.002f) {
 				dt = 0.002f;
@@ -881,11 +882,13 @@ MulticopterAttitudeControl::task_main()
 				if (fabsf(_manual_control_sp.y) > _params.rattitude_thres ||
 				    fabsf(_manual_control_sp.x) > _params.rattitude_thres) {
 					_v_control_mode.flag_control_attitude_enabled = false;
+				printf("2\n");
 				}
 			}
 
 			if (_v_control_mode.flag_control_attitude_enabled) {
 
+				printf("3\n");
 				if (_ts_opt_recovery == NULL) {
 					// the  tailsitter recovery instance has not been created, thus, the vehicle
 					// is not a tailsitter, do normal attitude control
@@ -922,6 +925,7 @@ MulticopterAttitudeControl::task_main()
 				//}
 
 			} else {
+				printf("4\n");
 				/* attitude controller disabled, poll rates setpoint topic */
 				if (_v_control_mode.flag_control_manual_enabled) {
 					/* manual rates control - ACRO mode */
@@ -956,6 +960,7 @@ MulticopterAttitudeControl::task_main()
 			if (_v_control_mode.flag_control_rates_enabled) {
 				control_attitude_rates(dt);
 
+				printf("5\n");
 				/* publish actuator controls */
 				_actuators.control[0] = (PX4_ISFINITE(_att_control(0))) ? _att_control(0) : 0.0f;
 				_actuators.control[1] = (PX4_ISFINITE(_att_control(1))) ? _att_control(1) : 0.0f;
@@ -971,11 +976,13 @@ MulticopterAttitudeControl::task_main()
 
 				if (!_actuators_0_circuit_breaker_enabled) {
 					if (_actuators_0_pub != NULL) {
+						printf("6\n");
 
 						orb_publish(_actuators_id, _actuators_0_pub, &_actuators);
 						perf_end(_controller_latency_perf);
 
 					} else if (_actuators_id) {
+						printf("7\n");
 						_actuators_0_pub = orb_advertise(_actuators_id, &_actuators);
 					}
 

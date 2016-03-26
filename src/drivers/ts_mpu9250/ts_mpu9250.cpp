@@ -68,6 +68,7 @@
 #include <drivers/device/integrator.h>
 #include <drivers/drv_accel.h>
 #include <drivers/drv_gyro.h>
+#include <drivers/drv_mag.h>
 #include <lib/conversion/rotation.h>
 //#include <mathlib/math/filter/LowPassFilter2p.hpp>
 
@@ -203,6 +204,8 @@
  */
 #define MPU9250_TIMER_REDUCTION				200
 
+#define MPU9250_MAG_DEFAULT_RATE			100
+
 class LowPassFilter2p
 {
 public:
@@ -308,7 +311,6 @@ private:
 	unsigned		_call_interval;
 
 	ringbuffer::RingBuffer	*_accel_reports;
-
 	struct accel_scale	_accel_scale;
 	float			_accel_range_scale;
 	float			_accel_range_m_s2;
@@ -317,7 +319,6 @@ private:
 	int			_accel_class_instance;
 
 	ringbuffer::RingBuffer	*_gyro_reports;
-
 	struct gyro_scale	_gyro_scale;
 	float			_gyro_range_scale;
 	float			_gyro_range_rad_s;
@@ -325,8 +326,21 @@ private:
 	int			_gyro_orb_class_instance;
 	int			_gyro_class_instance;
 
+	ringbuffer::RingBuffer	*_mag_reports;
+	struct mag_scale		_mag_scale;
+	float 			_mag_range_scale;
+	float 			_mag_range_ga;
+	bool			_mag_collect_phase;
+	orb_advert_t		_mag_topic;
+	int			_mag_class_instance;
+	int			_mag_orb_class_instance;
 
+
+	unsigned		_dlpf_freq;
 	unsigned		_sample_rate;
+
+	uint8_t			_range_bits;
+
 	perf_counter_t		_accel_reads;
 	perf_counter_t		_gyro_reads;
 	perf_counter_t		_sample_perf;
@@ -346,6 +360,9 @@ private:
 	LowPassFilter2p	_gyro_filter_x;
 	LowPassFilter2p	_gyro_filter_y;
 	LowPassFilter2p	_gyro_filter_z;
+	LowPassFilter2p	_mag_filter_x;
+	LowPassFilter2p	_mag_filter_y;
+	LowPassFilter2p	_mag_filter_z;
 
 	Integrator		_accel_int;
 	Integrator		_gyro_int;
@@ -367,6 +384,65 @@ private:
 	// keep last accel reading for duplicate detection
 	uint16_t		_last_accel[3];
 	bool			_got_duplicate;
+
+	/**
+	 * Reset chip.
+	 *
+	 * Resets the chip and measurements ranges, but not scale and offset.
+	 */
+	int			reset();
+
+	/*
+	  set low pass filter frequency
+	 */
+	void _set_dlpf_filter(uint16_t frequency_hz);
+
+	/*
+	  set sample rate (approximate) - 1kHz to 5Hz
+	*/
+
+	void _set_sample_rate(unsigned desired_sample_rate_hz);
+	/**
+	 * Set the MPU9250 measurement range.
+	 *
+	 * @param max_g		The maximum G value the range must support.
+	 * @return		OK if the value can be supported, -ERANGE otherwise.
+	 */
+	int			set_accel_range(unsigned max_g);
+
+	int			set_mag_range(unsigned range);
+
+	/**
+	 * Write a register in the MPU9250
+	 *
+	 * @param reg		The register to write.
+	 * @param value		The new value to write.
+	 */
+	void			write_reg(unsigned reg, uint8_t value);
+
+	/**
+	 * Modify a register in the MPU9250
+	 *
+	 * Bits are cleared before bits are set.
+	 *
+	 * @param reg		The register to modify.
+	 * @param clearbits	Bits in the register to clear.
+	 * @param setbits	Bits in the register to set.
+	 */
+	void			modify_reg(unsigned reg, uint8_t clearbits, uint8_t setbits);
+
+	/**
+	 * Write a register in the MPU9250, updating _checked_values
+	 *
+	 * @param reg		The register to write.
+	 * @param value		The new value to write.
+	 */
+	void			write_checked_reg(unsigned reg, uint8_t value);
+
+	/*
+	  check that key registers still have the right value
+	 */
+	void check_registers(void);
 
 	/**
 	 * Start automatic measurement.
@@ -393,14 +469,6 @@ private:
 	 * Fetch measurements from the sensor and update the report buffers.
 	 */
 	void			measure();
-
-	/**
-	 * Set the MPU9250 measurement range.
-	 *
-	 * @param max_g		The maximum G value the range must support.
-	 * @return		OK if the value can be supported, -ERANGE otherwise.
-	 */
-	int			set_accel_range(unsigned max_g);
 
 	/**
 	 * Swap a 16-bit value read from the MPU9250 to native byte order.
@@ -434,21 +502,6 @@ private:
 	 * @return 0 on success, 1 on failure
 	 */
 	int 			gyro_self_test();
-
-	/*
-	  set low pass filter frequency
-	 */
-	void _set_dlpf_filter(uint16_t frequency_hz);
-
-	/*
-	  set sample rate (approximate) - 1kHz to 5Hz
-	*/
-	void _set_sample_rate(unsigned desired_sample_rate_hz);
-
-	/*
-	  check that key registers still have the right value
-	 */
-	void check_registers(void);
 
 	/* do not allow to copy this class due to pointer data members */
 	MPU9250(const MPU9250 &);
@@ -500,6 +553,12 @@ MPU9250::MPU9250(const char *path_accel, const char *path_gyro, enum Rotation ro
 	_gyro_scale(),
 	_gyro_range_scale(0.0f),
 	_gyro_range_rad_s(0.0f),
+	_mag_scale(),
+	_mag_range_scale(0.0f),
+	_mag_range_ga(1.3f),
+	_dlpf_freq(MPU9250_DEFAULT_ONCHIP_FILTER_FREQ),
+	_sample_rate(1000),
+	_range_bits(0),
 	_accel_reads(perf_alloc(PC_COUNT, "mpu9250_accel_read")),
 	_gyro_reads(perf_alloc(PC_COUNT, "mpu9250_gyro_read")),
 	_sample_perf(perf_alloc(PC_ELAPSED, "mpu9250_read")),
@@ -509,12 +568,21 @@ MPU9250::MPU9250(const char *path_accel, const char *path_gyro, enum Rotation ro
 	_reset_retries(perf_alloc(PC_COUNT, "mpu9250_reset_retries")),
 	_duplicates(perf_alloc(PC_COUNT, "mpu9250_duplicates")),
 	_controller_latency_perf(perf_alloc_once(PC_ELAPSED, "ctrl_latency")),
-	_accel_filter_x(MPU9250_ACCEL_DEFAULT_RATE, MPU9250_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
+	/*_accel_filter_x(MPU9250_ACCEL_DEFAULT_RATE, MPU9250_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
 	_accel_filter_y(MPU9250_ACCEL_DEFAULT_RATE, MPU9250_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
 	_accel_filter_z(MPU9250_ACCEL_DEFAULT_RATE, MPU9250_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
 	_gyro_filter_x(MPU9250_GYRO_DEFAULT_RATE, MPU9250_GYRO_DEFAULT_DRIVER_FILTER_FREQ),
 	_gyro_filter_y(MPU9250_GYRO_DEFAULT_RATE, MPU9250_GYRO_DEFAULT_DRIVER_FILTER_FREQ),
-	_gyro_filter_z(MPU9250_GYRO_DEFAULT_RATE, MPU9250_GYRO_DEFAULT_DRIVER_FILTER_FREQ),
+	_gyro_filter_z(MPU9250_GYRO_DEFAULT_RATE, MPU9250_GYRO_DEFAULT_DRIVER_FILTER_FREQ),*/
+	_accel_filter_x(MPU9250_ACCEL_DEFAULT_RATE, 0),
+	_accel_filter_y(MPU9250_ACCEL_DEFAULT_RATE, 0),
+	_accel_filter_z(MPU9250_ACCEL_DEFAULT_RATE, 0),
+	_gyro_filter_x(MPU9250_GYRO_DEFAULT_RATE, 0),
+	_gyro_filter_y(MPU9250_GYRO_DEFAULT_RATE, 0),
+	_gyro_filter_z(MPU9250_GYRO_DEFAULT_RATE, 0),
+	_mag_filter_x(MPU9250_MAG_DEFAULT_RATE, 0),
+	_mag_filter_y(MPU9250_MAG_DEFAULT_RATE, 0),
+	_mag_filter_z(MPU9250_MAG_DEFAULT_RATE, 0),
 	_accel_int(1000000 / MPU9250_ACCEL_MAX_OUTPUT_RATE),
 	_gyro_int(1000000 / MPU9250_GYRO_MAX_OUTPUT_RATE, true),
 	_last_accel()
@@ -528,7 +596,10 @@ MPU9250::MPU9250(const char *path_accel, const char *path_gyro, enum Rotation ro
 	_gyro_topic = NULL;
 	_gyro_orb_class_instance = -1;
 	_gyro_class_instance = -1;
-	_sample_rate = 1000;
+	_mag_reports = NULL;
+	_mag_topic = NULL;
+	_mag_orb_class_instance = -1;
+	_mag_class_instance = -1;
 	_register_wait = 0;
 	_reset_wait = 0;
 	_rotation = rotation;
@@ -592,6 +663,300 @@ MPU9250::~MPU9250()
 	perf_free(_duplicates);
 }
 
+/*uint8_t
+MPU9250::read_reg(unsigned reg, uint32_t speed)
+{
+	uint8_t cmd[2] = { (uint8_t)(reg | DIR_READ), 0};
+
+	// general register transfer at low clock speed
+	set_frequency(speed);
+
+	transfer(cmd, cmd, sizeof(cmd));
+
+	return cmd[1];
+}
+
+uint16_t
+MPU9250::read_reg16(unsigned reg)
+{
+	uint8_t cmd[3] = { (uint8_t)(reg | DIR_READ), 0, 0 };
+
+	// general register transfer at low clock speed
+	set_frequency(MPU9250_LOW_BUS_SPEED);
+
+	transfer(cmd, cmd, sizeof(cmd));
+
+	return (uint16_t)(cmd[1] << 8) | cmd[2];
+}*/
+
+void
+MPU9250::write_reg(unsigned reg, uint8_t value)
+{
+	return;
+	/*uint8_t	cmd[2];
+
+	cmd[0] = reg | DIR_WRITE;
+	cmd[1] = value;
+
+	// general register transfer at low clock speed
+	set_frequency(MPU9250_LOW_BUS_SPEED);
+
+	transfer(cmd, nullptr, sizeof(cmd));*/
+}
+
+void
+MPU9250::modify_reg(unsigned reg, uint8_t clearbits, uint8_t setbits)
+{
+	uint8_t	val;
+
+	//val = read_reg(reg);
+	val &= ~clearbits;
+	val |= setbits;
+	write_reg(reg, val);
+}
+
+void
+MPU9250::write_checked_reg(unsigned reg, uint8_t value)
+{
+	write_reg(reg, value);
+
+	for (uint8_t i = 0; i < MPU9250_NUM_CHECKED_REGISTERS; i++) {
+		if (reg == _checked_registers[i]) {
+			_checked_values[i] = value;
+			_checked_bad[i] = value;
+		}
+	}
+}
+
+void
+MPU9250::_set_sample_rate(unsigned desired_sample_rate_hz)
+{
+	if (desired_sample_rate_hz == 0 ||
+	    desired_sample_rate_hz == GYRO_SAMPLERATE_DEFAULT ||
+	    desired_sample_rate_hz == ACCEL_SAMPLERATE_DEFAULT) {
+		desired_sample_rate_hz = MPU9250_GYRO_DEFAULT_RATE;
+	}
+
+	uint8_t div = 1000 / desired_sample_rate_hz;
+
+	if (div > 200) { div = 200; }
+
+	if (div < 1) { div = 1; }
+
+	write_checked_reg(MPUREG_SMPLRT_DIV, div - 1);
+	_sample_rate = 1000 / div;
+}
+
+void
+MPU9250::_set_dlpf_filter(uint16_t frequency_hz)
+{
+	uint8_t filter;
+
+	/*
+	   choose next highest filter frequency available
+	 */
+	if (frequency_hz == 0) {
+		_dlpf_freq = 0;
+		filter = BITS_DLPF_CFG_3600HZ;
+
+	} else if (frequency_hz <= 5) {
+		_dlpf_freq = 5;
+		filter = BITS_DLPF_CFG_5HZ;
+
+	} else if (frequency_hz <= 10) {
+		_dlpf_freq = 10;
+		filter = BITS_DLPF_CFG_10HZ;
+
+	} else if (frequency_hz <= 20) {
+		_dlpf_freq = 20;
+		filter = BITS_DLPF_CFG_20HZ;
+
+	} else if (frequency_hz <= 41) {
+		_dlpf_freq = 41;
+		filter = BITS_DLPF_CFG_41HZ;
+
+	} else if (frequency_hz <= 92) {
+		_dlpf_freq = 92;
+		filter = BITS_DLPF_CFG_92HZ;
+
+	} else if (frequency_hz <= 184) {
+		_dlpf_freq = 184;
+		filter = BITS_DLPF_CFG_184HZ;
+
+	} else if (frequency_hz <= 250) {
+		_dlpf_freq = 250;
+		filter = BITS_DLPF_CFG_250HZ;
+
+	} else {
+		_dlpf_freq = 0;
+		filter = BITS_DLPF_CFG_3600HZ;
+	}
+
+	write_checked_reg(MPUREG_CONFIG, filter);
+}
+
+int
+MPU9250::set_accel_range(unsigned max_g_in)
+{
+	uint8_t afs_sel;
+	float lsb_per_g;
+	float max_accel_g;
+
+	if (max_g_in > 8) { // 16g - AFS_SEL = 3
+		afs_sel = 3;
+		lsb_per_g = 2048;
+		max_accel_g = 16;
+
+	} else if (max_g_in > 4) { //  8g - AFS_SEL = 2
+		afs_sel = 2;
+		lsb_per_g = 4096;
+		max_accel_g = 8;
+
+	} else if (max_g_in > 2) { //  4g - AFS_SEL = 1
+		afs_sel = 1;
+		lsb_per_g = 8192;
+		max_accel_g = 4;
+
+	} else {                //  2g - AFS_SEL = 0
+		afs_sel = 0;
+		lsb_per_g = 16384;
+		max_accel_g = 2;
+	}
+
+	write_checked_reg(MPUREG_ACCEL_CONFIG, afs_sel << 3);
+	_accel_range_scale = (MPU9250_ONE_G / lsb_per_g);
+	_accel_range_m_s2 = max_accel_g * MPU9250_ONE_G;
+
+	return OK;
+}
+
+int MPU9250::set_mag_range(unsigned range)
+{
+	if (range < 1) {
+		_range_bits = 0x00;
+		_mag_range_scale = 1.0f / 1370.0f;
+		_mag_range_ga = 0.88f;
+
+	} else if (range <= 1) {
+		_range_bits = 0x01;
+		_mag_range_scale = 1.0f / 1090.0f;
+		_mag_range_ga = 1.3f;
+
+	} else if (range <= 2) {
+		_range_bits = 0x02;
+		_mag_range_scale = 1.0f / 820.0f;
+		_mag_range_ga = 1.9f;
+
+	} else if (range <= 3) {
+		_range_bits = 0x03;
+		_mag_range_scale = 1.0f / 660.0f;
+		_mag_range_ga = 2.5f;
+
+	} else if (range <= 4) {
+		_range_bits = 0x04;
+		_mag_range_scale = 1.0f / 440.0f;
+		_mag_range_ga = 4.0f;
+
+	} else if (range <= 4.7f) {
+		_range_bits = 0x05;
+		_mag_range_scale = 1.0f / 390.0f;
+		_mag_range_ga = 4.7f;
+
+	} else if (range <= 5.6f) {
+		_range_bits = 0x06;
+		_mag_range_scale = 1.0f / 330.0f;
+		_mag_range_ga = 5.6f;
+
+	} else {
+		_range_bits = 0x07;
+		_mag_range_scale = 1.0f / 230.0f;
+		_mag_range_ga = 8.1f;
+	}
+
+	int ret;
+
+	/*
+	 * Send the command to set the range
+	 */
+	//ret = write_reg(ADDR_CONF_B, (_range_bits << 5));
+
+	/*uint8_t range_bits_in = 0;
+	ret = read_reg(ADDR_CONF_B, range_bits_in);
+
+	if (OK != ret) {
+		perf_count(_comms_errors);
+	}
+
+	return !(range_bits_in == (_range_bits << 5));*/
+
+	return ret;
+}
+
+
+int MPU9250::reset()
+{
+	write_reg(MPUREG_PWR_MGMT_1, BIT_H_RESET);
+	usleep(10000);
+
+	write_checked_reg(MPUREG_PWR_MGMT_1, MPU_CLK_SEL_AUTO);
+	usleep(1000);
+
+	//write_checked_reg(MPUREG_PWR_MGMT_2, 0);
+	usleep(1000);
+
+	// SAMPLE RATE
+	_set_sample_rate(_sample_rate);
+	usleep(1000);
+
+	// FS & DLPF   FS=2000 deg/s, DLPF = 20Hz (low pass filter)
+	// was 90 Hz, but this ruins quality and does not improve the
+	// system response
+	_set_dlpf_filter(MPU9250_DEFAULT_ONCHIP_FILTER_FREQ);
+	usleep(1000);
+
+	// Gyro scale 2000 deg/s ()
+	write_checked_reg(MPUREG_GYRO_CONFIG, BITS_FS_2000DPS);
+	usleep(1000);
+
+	// correct gyro scale factors
+	// scale to rad/s in SI units
+	// 2000 deg/s = (2000/180)*PI = 34.906585 rad/s
+	// scaling factor:
+	// 1/(2^15)*(2000/180)*PI
+	_gyro_range_scale = (0.0174532 / 16.4);//1.0f / (32768.0f * (2000.0f / 180.0f) * M_PI_F);
+	_gyro_range_rad_s = (2000.0f / 180.0f) * M_PI_F;
+
+	set_accel_range(16);
+	set_mag_range(_mag_range_ga);
+
+	usleep(1000);
+
+	// INT CFG => Interrupt on Data Ready
+	write_checked_reg(MPUREG_INT_ENABLE, BIT_RAW_RDY_EN);        // INT: Raw data ready
+	usleep(1000);
+	write_checked_reg(MPUREG_INT_PIN_CFG, BIT_INT_ANYRD_2CLEAR); // INT: Clear on any read
+	usleep(1000);
+
+	/*uint8_t retries = 10;
+
+	while (retries--) {
+		bool all_ok = true;
+
+		for (uint8_t i = 0; i < MPU9250_NUM_CHECKED_REGISTERS; i++) {
+			if (read_reg(_checked_registers[i]) != _checked_values[i]) {
+				write_reg(_checked_registers[i], _checked_values[i]);
+				all_ok = false;
+			}
+		}
+
+		if (all_ok) {
+			break;
+		}
+	}*/
+
+	return OK;
+}
+
 int
 MPU9250::init()
 {
@@ -606,6 +971,16 @@ MPU9250::init()
 	_gyro_reports = new ringbuffer::RingBuffer(2, sizeof(gyro_report));
 
 	if (_gyro_reports == NULL) {
+		return !OK;
+	}
+
+	_mag_reports = new ringbuffer::RingBuffer(2, sizeof(mag_report));
+
+	if (_mag_reports == NULL) {
+		return !OK;
+	}
+
+	if (reset() != OK) {
 		return !OK;
 	}
 
@@ -650,6 +1025,16 @@ MPU9250::init()
 			     &_gyro_orb_class_instance, ORB_PRIO_MAX - 1);
 
 	if (_gyro_topic == NULL) {
+		warnx("ADVERT FAIL");
+		return !OK;
+	}
+
+	struct mag_report mrp;
+	_mag_reports->get(&mrp);
+	_mag_topic = orb_advertise_multi(ORB_ID(sensor_mag), &mrp,
+			&_mag_orb_class_instance, ORB_PRIO_MAX - 1);
+
+	if (_mag_topic == NULL) {
 		warnx("ADVERT FAIL");
 		return !OK;
 	}
@@ -800,12 +1185,13 @@ MPU9250::gyro_self_test()
 	return 0;
 }
 
-
 int
 MPU9250::mpu9250_ioctl(int cmd, unsigned long arg)
 {
 	switch (cmd) {
 
+	case SENSORIOCRESET:
+		return reset();
 
 	case SENSORIOCSPOLLRATE: {
 			switch (arg) {
@@ -846,17 +1232,23 @@ MPU9250::mpu9250_ioctl(int cmd, unsigned long arg)
 					// adjust filters
 					float cutoff_freq_hz = _accel_filter_x.get_cutoff_freq();
 					float sample_rate = 1.0e6f / ticks;
-					//_set_dlpf_filter(cutoff_freq_hz);
+					_set_dlpf_filter(cutoff_freq_hz);
 					_accel_filter_x.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
 					_accel_filter_y.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
 					_accel_filter_z.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
 
 
 					float cutoff_freq_hz_gyro = _gyro_filter_x.get_cutoff_freq();
-					//_set_dlpf_filter(cutoff_freq_hz_gyro);
+					_set_dlpf_filter(cutoff_freq_hz_gyro);
 					_gyro_filter_x.set_cutoff_frequency(sample_rate, cutoff_freq_hz_gyro);
 					_gyro_filter_y.set_cutoff_frequency(sample_rate, cutoff_freq_hz_gyro);
 					_gyro_filter_z.set_cutoff_frequency(sample_rate, cutoff_freq_hz_gyro);
+
+					float cutoff_freq_hz_mag = _mag_filter_x.get_cutoff_freq();
+					_set_dlpf_filter(cutoff_freq_hz_mag);
+					_mag_filter_x.set_cutoff_frequency(sample_rate, cutoff_freq_hz_gyro);
+					_mag_filter_y.set_cutoff_frequency(sample_rate, cutoff_freq_hz_gyro);
+					_mag_filter_z.set_cutoff_frequency(sample_rate, cutoff_freq_hz_gyro);
 
 					/* update interval for next measurement */
 					/* XXX this is a bit shady, but no other way to adjust... */
@@ -888,6 +1280,19 @@ MPU9250::mpu9250_ioctl(int cmd, unsigned long arg)
 		return 1000000 / _call_interval;
 
 	case SENSORIOCSQUEUEDEPTH: {
+			if ((arg < 1) || (arg > 100)) {
+				return -EINVAL;
+			}
+
+			/*irqstate_t flags = irqsave();
+
+			if (!_accel_reports->resize(arg)) {
+				irqrestore(flags);
+				return -ENOMEM;
+			}
+
+			irqrestore(flags);*/
+
 			return OK;
 		}
 
@@ -898,6 +1303,7 @@ MPU9250::mpu9250_ioctl(int cmd, unsigned long arg)
 		return _sample_rate;
 
 	case ACCELIOCSSAMPLERATE:
+		_set_sample_rate(arg);
 		return OK;
 
 	case ACCELIOCGLOWPASS:
@@ -930,11 +1336,10 @@ MPU9250::mpu9250_ioctl(int cmd, unsigned long arg)
 		return OK;
 
 	case ACCELIOCSRANGE:
-		return OK;
+		return set_accel_range(arg);
 
 	case ACCELIOCGRANGE:
 		return (unsigned long)((_accel_range_m_s2) / MPU9250_ONE_G + 0.5f);
-
 
 #ifdef ACCELIOCSHWLOWPASS
 
@@ -943,6 +1348,11 @@ MPU9250::mpu9250_ioctl(int cmd, unsigned long arg)
 		return OK;
 #endif
 
+#ifdef ACCELIOCGHWLOWPASS
+
+	case ACCELIOCGHWLOWPASS:
+		return _dlpf_freq;
+#endif
 
 	default:
 		/* give it to the superclass */
@@ -959,6 +1369,7 @@ MPU9250::start()
 	/* discard any stale data in the buffers */
 	_accel_reports->flush();
 	_gyro_reports->flush();
+	_mag_reports->flush();
 
 	/* start polling at the specified rate */
 	hrt_call_every(&_call,
@@ -1000,6 +1411,9 @@ MPU9250::measure()
 		int16_t		gyro_x;
 		int16_t		gyro_y;
 		int16_t		gyro_z;
+		int16_t		mag_x;
+		int16_t		mag_y;
+		int16_t		mag_z;
 	} report;
 
 	/* start measuring */
@@ -1054,13 +1468,17 @@ MPU9250::measure()
 
 	report.accel_x = 0;
 	report.accel_y = 0;
-	report.accel_z = -1000;
+	report.accel_z = 100;
 
 	report.temp = 0;
 
 	report.gyro_x = 0;
 	report.gyro_y = 0;
 	report.gyro_z = 0;
+
+	report.mag_x = 1;
+	report.mag_y = 1;
+	report.mag_z = 0;
 
 	if (report.accel_x == 0 &&
 	    report.accel_y == 0 &&
@@ -1112,6 +1530,7 @@ MPU9250::measure()
 	 */
 	accel_report		arb;
 	gyro_report		grb;
+	mag_report		mrb;
 
 	/*
 	 * Adjust and scale results to m/s^2.
@@ -1138,7 +1557,6 @@ MPU9250::measure()
 	 *	 	  the offset is 74 from the origin and subtracting
 	 *		  74 from all measurements centers them around zero.
 	 */
-
 
 	/* NOTE: Axes have been swapped to match the board a few lines above. */
 
@@ -1214,6 +1632,35 @@ MPU9250::measure()
 	_gyro_reports->force(&grb);
 
 
+	mrb.x_raw = report.mag_x;
+	mrb.y_raw = report.mag_y;
+	mrb.z_raw = report.mag_z;
+
+	xraw_f = report.mag_x;
+	yraw_f = report.mag_y;
+	zraw_f = report.mag_z;
+
+	// apply user specified rotation
+	rotate_3f(_rotation, xraw_f, yraw_f, zraw_f);
+
+	float x_mag_in_new = ((xraw_f * _mag_range_scale) - _mag_scale.x_offset) * _mag_scale.x_scale;
+	float y_mag_in_new = ((yraw_f * _mag_range_scale) - _mag_scale.y_offset) * _mag_scale.y_scale;
+	float z_mag_in_new = ((zraw_f * _mag_range_scale) - _mag_scale.z_offset) * _mag_scale.z_scale;
+
+	mrb.x = _mag_filter_x.apply(x_mag_in_new);
+	mrb.y = _mag_filter_y.apply(y_mag_in_new);
+	mrb.z = _mag_filter_z.apply(z_mag_in_new);
+
+	mrb.x = 0.1;
+	mrb.y = 0.1;
+	mrb.z = 0.1;
+
+	mrb.temperature = _last_temperature;
+	mrb.timestamp = hrt_absolute_time();
+	mrb.error_count = 0;
+
+	_mag_reports->force(&mrb);
+
 	if (accel_notify) {
 		/* log the time of this report */
 		perf_begin(_controller_latency_perf);
@@ -1225,6 +1672,8 @@ MPU9250::measure()
 		/* publish it */
 		orb_publish(ORB_ID(sensor_gyro), _gyro_topic, &grb);
 	}
+
+	orb_publish(ORB_ID(sensor_mag), _mag_topic, &mrb);
 
 	/* stop measuring */
 	perf_end(_sample_perf);

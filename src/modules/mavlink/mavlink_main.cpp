@@ -486,7 +486,6 @@ Mavlink::mavlink_dev_ioctl(struct file *filp, int cmd, unsigned long arg)
 Mavlink::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 #endif
 {
-	printf("ioctl - cmd: %d, arg: %d\n",cmd, arg);
 	switch (cmd) {
 	case (int)MAVLINK_IOC_SEND_TEXT_INFO:
 	case (int)MAVLINK_IOC_SEND_TEXT_CRITICAL:

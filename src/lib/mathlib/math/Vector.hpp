@@ -320,6 +320,60 @@ public:
 		return res;
 	}
 
+	float lib_sqrtapprox(float x) const
+	{
+		int32_t i;
+
+		/* Floats + bit manipulation = +inf fun! */
+
+		i = *((int32_t *) & x);
+		i = 0x1fc00000 + (i >> 1);
+		x = *((float *)&i);
+
+		return x;
+	}
+
+	float sqrtf(float x) const
+	{
+		float y;
+
+		/* Filter out invalid/trivial inputs */
+
+		if (x < 0.0)
+		{
+			return NAN;
+		}
+
+		if (isnan(x))
+		{
+			return NAN;
+		}
+
+		if (isinf(x))
+		{
+			return INFINITY;
+		}
+
+		if (x == 0.0)
+		{
+			return 0.0;
+		}
+
+		/* Guess square root (using bit manipulation) */
+
+		y = lib_sqrtapprox(x);
+
+		/* Perform three iterations of approximation. This number (3) is
+		 * definitely optimal
+		 */
+
+		y = 0.5 * (y + x / y);
+		y = 0.5 * (y + x / y);
+		y = 0.5 * (y + x / y);
+
+		return y;
+	}
+
 	/**
 	 * gets the length of this vector
 	 */

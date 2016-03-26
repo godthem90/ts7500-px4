@@ -970,20 +970,19 @@ Sensors::accel_poll(struct sensor_combined_s &raw)
 		orb_check(_accel_sub[i], &accel_updated);
 
 		if (accel_updated) {
-			printf("accel updated!!\n");
 			struct accel_report	accel_report;
 
 			orb_copy(ORB_ID(sensor_accel), _accel_sub[i], &accel_report);
 
 			math::Vector<3> vect(accel_report.x, accel_report.y, accel_report.z);
-			vect = _board_rotation * vect;
+			//vect = _board_rotation * vect;
 
 			raw.accelerometer_m_s2[i * 3 + 0] = vect(0);
 			raw.accelerometer_m_s2[i * 3 + 1] = vect(1);
 			raw.accelerometer_m_s2[i * 3 + 2] = vect(2);
 
 			math::Vector<3> vect_int(accel_report.x_integral, accel_report.y_integral, accel_report.z_integral);
-			vect_int = _board_rotation * vect_int;
+			//vect_int = _board_rotation * vect_int;
 
 			raw.accelerometer_integral_m_s[i * 3 + 0] = vect_int(0);
 			raw.accelerometer_integral_m_s[i * 3 + 1] = vect_int(1);
@@ -1010,20 +1009,19 @@ Sensors::gyro_poll(struct sensor_combined_s &raw)
 		orb_check(_gyro_sub[i], &gyro_updated);
 
 		if (gyro_updated) {
-			printf("gyro updated!!\n");
 			struct gyro_report	gyro_report;
 
 			orb_copy(ORB_ID(sensor_gyro), _gyro_sub[i], &gyro_report);
 
 			math::Vector<3> vect(gyro_report.x, gyro_report.y, gyro_report.z);
-			vect = _board_rotation * vect;
+			//vect = _board_rotation * vect;
 
 			raw.gyro_rad_s[i * 3 + 0] = vect(0);
 			raw.gyro_rad_s[i * 3 + 1] = vect(1);
 			raw.gyro_rad_s[i * 3 + 2] = vect(2);
 
 			math::Vector<3> vect_int(gyro_report.x_integral, gyro_report.y_integral, gyro_report.z_integral);
-			vect_int = _board_rotation * vect_int;
+			//vect_int = _board_rotation * vect_int;
 
 			raw.gyro_integral_rad[i * 3 + 0] = vect_int(0);
 			raw.gyro_integral_rad[i * 3 + 1] = vect_int(1);
@@ -1055,14 +1053,13 @@ Sensors::mag_poll(struct sensor_combined_s &raw)
 		orb_check(_mag_sub[i], &mag_updated);
 
 		if (mag_updated) {
-			printf("mag updated!!\n");
 			struct mag_report	mag_report;
 
 			orb_copy(ORB_ID(sensor_mag), _mag_sub[i], &mag_report);
 
 			math::Vector<3> vect(mag_report.x, mag_report.y, mag_report.z);
 
-			vect = _mag_rotation[i] * vect;
+			//vect = _mag_rotation[i] * vect;
 
 			raw.magnetometer_ga[i * 3 + 0] = vect(0);
 			raw.magnetometer_ga[i * 3 + 1] = vect(1);
@@ -1087,7 +1084,6 @@ Sensors::baro_poll(struct sensor_combined_s &raw)
 		orb_check(_baro_sub[i], &baro_updated);
 
 		if (baro_updated) {
-			printf("baro updated!!\n");
 
 			orb_copy(ORB_ID(sensor_baro), _baro_sub[i], &_barometer);
 
@@ -1764,7 +1760,6 @@ Sensors::rc_poll()
 	orb_check(_rc_sub, &rc_updated);
 
 	if (rc_updated) {
-		printf("rc updated!!\n");
 		/* read low-level values from FMU or IO RC inputs (PPM, Spektrum, S.Bus) */
 		struct rc_input_values rc_input;
 
@@ -2141,7 +2136,7 @@ Sensors::task_main()
 
 		/* Inform other processes that new data is available to copy */
 		if (_publishing && raw.timestamp > 0) {
-			printf("sensor_combined publishing!!\n");
+			//printf("sensor_combined publishing!!\n");
 			orb_publish(ORB_ID(sensor_combined), _sensor_pub, &raw);
 		}
 
