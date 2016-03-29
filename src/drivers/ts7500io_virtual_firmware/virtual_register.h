@@ -37,6 +37,7 @@
 #define __STDC_FORMAT_MACROS
 #endif
 #include <inttypes.h>
+#include <pthread.h>
 
 /**
  * @file protocol.h
@@ -386,6 +387,25 @@ struct IOPacket {
 
 #define r_control_values	(&r_page_controls[0])
 
+class Semaphore {
+	
+public :
+
+	pthread_mutex_t lock;
+	pthread_cond_t wait;
+	int value;
+
+	Semaphore(unsigned v);
+	~Semaphore();
+
+	int Sem_wait();
+	int Sem_timedwait(const struct timespec *abstime);
+	int Sem_post();
+	int Sem_getvalue(int *sval);
+
+};
+
+extern Semaphore *vreg_sem;
 
 /*
  * System state structure.

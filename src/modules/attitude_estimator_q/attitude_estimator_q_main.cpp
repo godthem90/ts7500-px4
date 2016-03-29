@@ -299,6 +299,10 @@ int AttitudeEstimatorQ::start()
 {
 	ASSERT(_control_task == -1);
 
+	_lp_roll_rate.hack_set(-0.98241, 0.34767, 0.09131, 0.18263, 0.09131);
+	_lp_pitch_rate.hack_set(-0.98241, 0.34767, 0.09131, 0.18263, 0.09131);
+	_lp_yaw_rate.hack_set(-1.30728,0.49181,0.04613,0.09226,0.04613);
+
 	/* start the task */
 	_control_task = px4_task_spawn_cmd("attitude_estimator_q",
 					   SCHED_DEFAULT,

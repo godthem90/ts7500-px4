@@ -302,6 +302,7 @@ uint16_t		r_page_servo_control_max[PX4IO_SERVO_COUNT] = { PWM_DEFAULT_MAX, PWM_D
  */
 uint16_t		r_page_servo_disarmed[PX4IO_SERVO_COUNT] = { 0, 0, 0, 0, 0, 0, 0, 0 };
 
+
 /*
  * Helper function to handle changes to the PWM rate control registers.
  */
@@ -695,6 +696,7 @@ int
 set_virtual_register(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num_values)
 {
 
+	vreg_sem->Sem_wait();
 	switch (page) {
 
 	/* handle bulk controls input */
@@ -860,6 +862,7 @@ set_virtual_register(uint8_t page, uint8_t offset, const uint16_t *values, unsig
 		 * this state defines an active system. This check is done in the
 		 * text handling function.
 		 */
+		vreg_sem->Sem_post();
 		return mixer_handle_text(values, num_values * sizeof(*values));
 
 	default:
@@ -882,6 +885,7 @@ set_virtual_register(uint8_t page, uint8_t offset, const uint16_t *values, unsig
 		break;
 	}
 
+	vreg_sem->Sem_post();
 	return 0;
 }
 
@@ -901,6 +905,7 @@ get_virtual_register(uint8_t page, uint8_t offset, uint16_t *values, unsigned nu
 		*num_values = sizeof(_page_name) / sizeof(_page_name[0]);	\
 	} while(0)*/
 
+	vreg_sem->Sem_wait();
 	switch (page) {
 
 	/*
@@ -1081,9 +1086,11 @@ get_virtual_register(uint8_t page, uint8_t offset, uint16_t *values, unsigned nu
 		break;
 
 	default:
+		vreg_sem->Sem_post();
 		return -1;
 	}
 
+	vreg_sem->Sem_post();
 //#undef SELECT_PAGE
 #undef COPY_PAGE
 

@@ -80,6 +80,15 @@ void LowPassFilter2p::set_cutoff_frequency(float sample_freq, float cutoff_freq)
     _a2 = (1.0f-2.0f*cosf(M_PI_F/4.0f)*ohm+ohm*ohm)/c;
 }
 
+void LowPassFilter2p::hack_set(float a1,float a2,float b0,float b1,float b2)
+{
+	_a1 = a1;
+	_a2 = a2;
+	_b0 = b0;
+	_b1 = b1;
+	_b2 = b2;
+}
+
 float LowPassFilter2p::apply(float sample)
 {
     if (_cutoff_freq <= 0.0f) {

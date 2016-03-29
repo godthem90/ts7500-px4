@@ -568,18 +568,12 @@ MPU9250::MPU9250(const char *path_accel, const char *path_gyro, enum Rotation ro
 	_reset_retries(perf_alloc(PC_COUNT, "mpu9250_reset_retries")),
 	_duplicates(perf_alloc(PC_COUNT, "mpu9250_duplicates")),
 	_controller_latency_perf(perf_alloc_once(PC_ELAPSED, "ctrl_latency")),
-	/*_accel_filter_x(MPU9250_ACCEL_DEFAULT_RATE, MPU9250_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
+	_accel_filter_x(MPU9250_ACCEL_DEFAULT_RATE, MPU9250_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
 	_accel_filter_y(MPU9250_ACCEL_DEFAULT_RATE, MPU9250_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
 	_accel_filter_z(MPU9250_ACCEL_DEFAULT_RATE, MPU9250_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
 	_gyro_filter_x(MPU9250_GYRO_DEFAULT_RATE, MPU9250_GYRO_DEFAULT_DRIVER_FILTER_FREQ),
 	_gyro_filter_y(MPU9250_GYRO_DEFAULT_RATE, MPU9250_GYRO_DEFAULT_DRIVER_FILTER_FREQ),
-	_gyro_filter_z(MPU9250_GYRO_DEFAULT_RATE, MPU9250_GYRO_DEFAULT_DRIVER_FILTER_FREQ),*/
-	_accel_filter_x(MPU9250_ACCEL_DEFAULT_RATE, 0),
-	_accel_filter_y(MPU9250_ACCEL_DEFAULT_RATE, 0),
-	_accel_filter_z(MPU9250_ACCEL_DEFAULT_RATE, 0),
-	_gyro_filter_x(MPU9250_GYRO_DEFAULT_RATE, 0),
-	_gyro_filter_y(MPU9250_GYRO_DEFAULT_RATE, 0),
-	_gyro_filter_z(MPU9250_GYRO_DEFAULT_RATE, 0),
+	_gyro_filter_z(MPU9250_GYRO_DEFAULT_RATE, MPU9250_GYRO_DEFAULT_DRIVER_FILTER_FREQ),
 	_mag_filter_x(MPU9250_MAG_DEFAULT_RATE, 0),
 	_mag_filter_y(MPU9250_MAG_DEFAULT_RATE, 0),
 	_mag_filter_z(MPU9250_MAG_DEFAULT_RATE, 0),
@@ -1466,19 +1460,19 @@ MPU9250::measure()
 	report.gyro_y = int16_t_from_bytes(mpu_report.gyro_y);
 	report.gyro_z = int16_t_from_bytes(mpu_report.gyro_z);*/
 
-	report.accel_x = 0;
-	report.accel_y = 0;
-	report.accel_z = 100;
+	report.accel_x = 88;
+	report.accel_y = -167;
+	report.accel_z = -4740;
 
 	report.temp = 0;
 
-	report.gyro_x = 0;
-	report.gyro_y = 0;
-	report.gyro_z = 0;
+	report.gyro_x = 12;
+	report.gyro_y = 21;
+	report.gyro_z = 12;
 
-	report.mag_x = 1;
-	report.mag_y = 1;
-	report.mag_z = 0;
+	report.mag_x = -256;
+	report.mag_y = 18;
+	report.mag_z = 392;
 
 	if (report.accel_x == 0 &&
 	    report.accel_y == 0 &&
@@ -1651,10 +1645,24 @@ MPU9250::measure()
 	mrb.y = _mag_filter_y.apply(y_mag_in_new);
 	mrb.z = _mag_filter_z.apply(z_mag_in_new);
 
-	mrb.x = 0.1;
-	mrb.y = 0.1;
-	mrb.z = 0.1;
 
+	arb.x = 0.2028;
+	arb.y = -0.3059;
+	arb.z = -9.7775;
+
+	grb.x = 0.00121;
+	grb.y = 0.00148;
+	grb.z = -0.0004;
+
+	mrb.x = 0.124593;
+	mrb.y = -0.005236;
+	mrb.z = 0.352572;
+
+
+
+	/*printf("accel : %f, %f, %f\n", arb.x, arb.y, arb.z);
+	printf("gyro : %f, %f, %f\n", grb.x, grb.y, grb.z);
+	printf("mag : %f, %f, %f\n", mrb.x, mrb.y, mrb.z);*/
 	mrb.temperature = _last_temperature;
 	mrb.timestamp = hrt_absolute_time();
 	mrb.error_count = 0;

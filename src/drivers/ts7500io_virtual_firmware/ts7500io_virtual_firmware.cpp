@@ -17,11 +17,138 @@
 
 #include "ts7500io_virtual_firmware.h"
 
+bool jjh_debug = false;
+
 struct sys_state_s system_state;
 
 pwm_limit_t pwm_limit;
 
-int safety_off_countdown = 3000;
+int safety_off_countdown = 4000;
+
+Semaphore *vreg_sem = NULL;
+
+Semaphore::Semaphore(unsigned v)
+{
+	// We do not used the process shared arg
+	value = v;
+	pthread_cond_init(&wait, NULL);
+	pthread_mutex_init(&lock, NULL);
+}
+
+Semaphore::~Semaphore()
+{
+	pthread_mutex_lock(&lock);
+	pthread_cond_destroy(&wait);
+	pthread_mutex_unlock(&lock);
+	pthread_mutex_destroy(&lock);
+}
+
+int Semaphore::Sem_wait()
+{
+	int ret = pthread_mutex_lock(&lock);
+
+	if (ret) {
+		return ret;
+	}
+
+	value--;
+
+	if (value < 0) {
+		ret = pthread_cond_wait(&wait, &lock);
+
+	} else {
+		ret = 0;
+	}
+
+	if (ret) {
+		PX4_WARN("px4_sem_wait failure");
+	}
+
+	int mret = pthread_mutex_unlock(&lock);
+
+	return (ret) ? ret : mret;
+}
+
+int Semaphore::Sem_timedwait(const struct timespec *abstime)
+{
+	int ret = pthread_mutex_lock(&lock);
+
+	if (ret) {
+		return ret;
+	}
+
+	value--;
+	errno = 0;
+
+	if (value < 0) {
+		ret = pthread_cond_timedwait(&wait, &lock, abstime);
+
+	} else {
+		ret = 0;
+	}
+
+	int err = ret;
+
+	if (err != 0 && err != ETIMEDOUT) {
+		printf("my_sem_timedwait fail\n");
+		/*setbuf(stdout, NULL);
+		setbuf(stderr, NULL);
+		const unsigned NAMELEN = 32;
+		char thread_name[NAMELEN] = {};
+		(void)pthread_getname_np(pthread_self(), thread_name, NAMELEN);
+		PX4_WARN("%s: my_sem_timedwait failure: ret: %d, %s", thread_name, ret, strerror(err));*/
+	}
+
+	int mret = pthread_mutex_unlock(&lock);
+
+	return (err) ? err : mret;
+}
+
+int Semaphore::Sem_post()
+{
+	int ret = pthread_mutex_lock(&lock);
+
+	if (ret) {
+		return ret;
+	}
+
+	value++;
+
+	if (value <= 0) {
+		ret = pthread_cond_signal(&wait);
+
+	} else {
+		ret = 0;
+	}
+
+	if (ret) {
+		PX4_WARN("px4_sem_post failure");
+	}
+
+	int mret = pthread_mutex_unlock(&lock);
+
+	// return the cond signal failure if present,
+	// else return the mutex status
+	return (ret) ? ret : mret;
+}
+
+int Semaphore::Sem_getvalue(int *sval)
+{
+	int ret = pthread_mutex_lock(&lock);
+
+	if (ret) {
+		PX4_WARN("px4_sem_getvalue failure");
+	}
+
+	if (ret) {
+		return ret;
+	}
+
+	*sval = value;
+	ret = pthread_mutex_unlock(&lock);
+
+	return ret;
+}
 
 class Virtual_Firmware
 {
@@ -63,6 +190,9 @@ Virtual_Firmware::~Virtual_Firmware()
 	perf_free(controls_perf);
 	perf_free(loop_perf);
 	firmware = NULL;
+
+	delete vreg_sem;
+	vreg_sem = NULL;
 }
 
 void Virtual_Firmware::task_main()
@@ -72,16 +202,24 @@ void Virtual_Firmware::task_main()
 
 	/* kick the mixer */
 	perf_begin(mixer_perf);
+	vreg_sem->Sem_wait();
 	mixer_tick();
+	vreg_sem->Sem_post();
 	perf_end(mixer_perf);
 
 	/* kick the control inputs */
 	perf_begin(controls_perf);
+	vreg_sem->Sem_wait();
 	controls_tick();
+	vreg_sem->Sem_post();
 	perf_end(controls_perf);
 
 	if(safety_off_countdown-- == 0)
+	{
+		vreg_sem->Sem_wait();
 		r_status_flags |= PX4IO_P_STATUS_FLAGS_SAFETY_OFF;
+		vreg_sem->Sem_post();
+	}
 
 	/* check for debug activity (default: none) */
 	//show_debug_messages();
@@ -94,9 +232,12 @@ void Virtual_Firmware::task_main_trampoline(int argc, char *argv[])
 
 int Virtual_Firmware::init()
 {
+
+	vreg_sem = new Semaphore(1);
+
 	/* configure the first 8 PWM outputs (i.e. all of them) */
 	//up_pwm_servo_init(0xff);
-	printf("servo init!!\n");
+	ts7500_pwm_init();
 
 	/* run C++ ctors before we go any further */
 	//up_cxxinitialize();
@@ -198,7 +339,7 @@ void print_page()
 	}
 	printf("\n");
 
-	printf("r_page_controls : \n");
+	printf("r_page_controls(recieved from ts7500io) : \n");
 	for( i = 0; i < PX4IO_CONTROL_GROUPS; i++ )
 	{
 		int j;
@@ -207,6 +348,16 @@ void print_page()
 		printf("\n");
 	}
 	printf("\n");
+
+	printf("r_page_servos(actual effective pwm out) : \n");
+	for( i = 0; i < PX4IO_SERVO_COUNT; i++ )
+		printf("\t%d",r_page_servos[i]);
+	printf("\n\n");
+	
+	printf("r_page_actuators(actual pwm out) : \n");
+	for( i = 0; i < PX4IO_SERVO_COUNT; i++ )
+		printf("\t%d",(uint16_t)((int)((REG_TO_FLOAT(r_page_actuators[i]) + 1.0f) * 10000) + 20000));
+	printf("\n\n");
 
 }
 
@@ -263,6 +414,16 @@ int ts7500io_virtual_firmware_main(int argc, char *argv[])
 
 		} else {
 			printf("not running\n");
+			return 1;
+		}
+	}
+	
+	if (!strcmp(argv[1], "debug")) {
+		if (firmware) {
+			jjh_debug = true;
+			return 0;
+
+		} else {
 			return 1;
 		}
 	}

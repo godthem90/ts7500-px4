@@ -418,18 +418,24 @@ ppm_input(uint16_t *values, uint16_t *num_values, uint16_t *frame_len)
 		//*num_values = ppm_decoded_channels;
 		//*num_values = PPM_DECODED_CHANNELS;
 
-		*num_values = 0;
+		(*num_values) = 0;
 
 		sbuslock();
 		for (unsigned i = 0; (i < PPM_MAX_CHANNELS); i++) {
-			//values[i] = sbus_peek16(RC_BASE_ADDR + 2*i);
-			values[i] = 1500;
+			values[i] = sbus_peek16(RC_BASE_ADDR + 2*i);
+			//values[i] = 1500;
 			//printf("channel %d : %d\n", i, values[i]);
 			if( values[i] > 1000 )
-				*num_values++;
+				(*num_values)++;
 		}
 		sbusunlock();
-		values[5] = 1100;
+		/*values[0] = 1499;
+		values[1] = 1489;
+		values[2] = 1505;
+		values[3] = 1501;
+		values[4] = 1826;
+		values[5] = 1553;*/
+
 		if (*num_values > PX4IO_RC_INPUT_CHANNELS) {
 			*num_values = PX4IO_RC_INPUT_CHANNELS;
 		}

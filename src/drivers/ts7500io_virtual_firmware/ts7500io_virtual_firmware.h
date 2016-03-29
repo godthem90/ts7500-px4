@@ -169,6 +169,10 @@ extern pwm_limit_t pwm_limit;
 
 #define CONTROL_PAGE_INDEX(_group, _channel) (_group * PX4IO_CONTROL_CHANNELS + _channel)
 
+extern bool jjh_debug;
+
+extern void ts7500_pwm_init(void);
+
 /*
  * Mixer
  */

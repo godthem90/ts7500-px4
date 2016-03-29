@@ -57,6 +57,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <math.h>
+#include <ctype.h>
 
 #include <px4_tasks.h>
 #include <px4_posix.h>
@@ -332,7 +333,9 @@ private:
 	 */
 	int			mixer_send(const char *buf, unsigned buflen, unsigned retries = 3);
 
+	int 		load_mixer_file(const char *fname, char *buf, unsigned maxlen);
 
+	int			mixer_load(const char *fname);
 
 	static void task_main_trampoline(int argc, char *argv[]);
 
@@ -405,7 +408,7 @@ int RC_Driver::ioctl(device::file_t *filep, int cmd, unsigned long arg)
 {
 	int ret = OK;
 
-	/* regular ioctl? */
+	/* regula::ioctl? */
 	switch (cmd) {
 	case PWM_SERVO_ARM:
 		/* set the 'armed' bit */
@@ -1408,6 +1411,7 @@ int RC_Driver::io_get_raw_rc_input(rc_input_values &input_rc)
 	 * channel count once.
 	 */
 	channel_count = regs[PX4IO_P_RAW_RC_COUNT];
+	//printf("channel_count : %d\n", channel_count);
 
 	/* limit the channel count */
 	if (channel_count > input_rc_s::RC_INPUT_MAX_CHANNELS) {
@@ -1425,6 +1429,8 @@ int RC_Driver::io_get_raw_rc_input(rc_input_values &input_rc)
 	input_rc.rc_lost_frame_count = regs[PX4IO_P_RAW_LOST_FRAME_COUNT];
 	input_rc.rc_total_frame_count = regs[PX4IO_P_RAW_FRAME_COUNT];
 	input_rc.channel_count = channel_count;
+
+	
 
 	/* rc_lost has to be set before the call to this function */
 	if (!input_rc.rc_lost && !input_rc.rc_failsafe) {
@@ -1732,6 +1738,7 @@ int RC_Driver::mixer_send(const char *buf, unsigned buflen, unsigned retries)
 		}
 
 		if (ret == 0) {
+			printf("mixer load succeed\n");
 			/* success, exit */
 			break;
 		}
@@ -1741,7 +1748,8 @@ int RC_Driver::mixer_send(const char *buf, unsigned buflen, unsigned retries)
 	} while (retries > 0);
 
 	if (retries == 0) {
-		mavlink_and_console_log_info(_mavlink_fd, "[IO] mixer upload fail");
+		printf("mixer load failed\n");
+		//mavlink_and_console_log_info(_mavlink_fd, "[IO] mixer upload fail");
 		/* load must have failed for some reason */
 		return -EINVAL;
 
@@ -1749,6 +1757,94 @@ int RC_Driver::mixer_send(const char *buf, unsigned buflen, unsigned retries)
 		/* all went well, set the mixer ok flag */
 		return io_reg_modify(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_FLAGS, 0, PX4IO_P_STATUS_FLAGS_MIXER_OK);
 	}
+}
+
+int RC_Driver::load_mixer_file(const char *fname, char *buf, unsigned maxlen)
+{
+	FILE		*fp;
+	char		line[120];
+
+	/* open the mixer definition file */
+	fp = fopen(fname, "r");
+
+	if (fp == NULL) {
+		warnx("file not found");
+		return -1;
+	}
+
+	/* read valid lines from the file into a buffer */
+	buf[0] = '\0';
+
+	for (;;) {
+
+		/* get a line, bail on error/EOF */
+		line[0] = '\0';
+
+		if (fgets(line, sizeof(line), fp) == NULL) {
+			break;
+		}
+
+		/* if the line doesn't look like a mixer definition line, skip it */
+		if ((strlen(line) < 2) || !isupper(line[0]) || (line[1] != ':')) {
+			continue;
+		}
+
+		/* compact whitespace in the buffer */
+		char *t, *f;
+
+		for (f = line; *f != '\0'; f++) {
+			/* scan for space characters */
+			if (*f == ' ') {
+				/* look for additional spaces */
+				t = f + 1;
+
+				while (*t == ' ') {
+					t++;
+				}
+
+				if (*t == '\0') {
+					/* strip trailing whitespace */
+					*f = '\0';
+
+				} else if (t > (f + 1)) {
+					memmove(f + 1, t, strlen(t) + 1);
+				}
+			}
+		}
+
+		/* if the line is too long to fit in the buffer, bail */
+		if ((strlen(line) + strlen(buf) + 1) >= maxlen) {
+			warnx("line too long");
+			fclose(fp);
+			return -1;
+		}
+
+		/* add the line to the buffer */
+		strcat(buf, line);
+	}
+
+	fclose(fp);
+	return 0;
+}
+
+int RC_Driver::mixer_load(const char *fname)
+{
+	char buf[2048];
+
+	if (load_mixer_file(fname, &buf[0], sizeof(buf)) < 0) {
+		printf("can't load mixer: %s", fname);
+		return 1;
+	}
+
+	int ret = mixer_send(buf, strnlen(buf, 2048));
+	/* Pass the buffer to the device */
+
+	if (ret < 0) {
+		printf("error loading mixers from %s", fname);
+		return 1;
+	}
+
+	return 0;
 }
 
 
@@ -1806,6 +1902,8 @@ int RC_Driver::task_main()
 
 	_param_update_force = true;
 
+	printf("loading mixer...\n");
+	mixer_load("quad_x.main.mix");
 
 	while(!_task_should_exit)
 	{
@@ -1833,18 +1931,11 @@ int RC_Driver::task_main()
 			warnx("poll error %d", errno);
 			continue;
 		}
-		else if (ret == 0)
-		{
-			printf("actuator topic time out\n");
-		}
-		else
-			printf("poll normally\n");
 
 		hrt_abstime now = hrt_absolute_time();
 
 		if (fds[0].revents & POLLIN) {
 
-			printf("set io pwm\n");
 			(void)io_set_control_groups();
 		}
 
@@ -2059,7 +2150,6 @@ int RC_Driver::init()
 	    (_max_transfer < 16) || (_max_transfer > 255)  ||
 	    (_max_rc_input < 1)  || (_max_rc_input > 255)) {
 
-		printf("config read error");
 		mavlink_log_emergency(_mavlink_fd, "[IO] config read fail, abort.");
 		return -1;
 	}
@@ -2251,20 +2341,6 @@ int RC_Driver::init()
 	if (circuit_breaker_enabled("CBRK_IO_SAFETY", CBRK_IO_SAFETY_KEY)) {
 		(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FORCE_SAFETY_OFF, PX4IO_FORCE_SAFETY_MAGIC);
 	}
-
-	/* try to claim the generic PWM output device node as well - it's OK if we fail at this */
-	//ret = register_driver(PWM_OUTPUT0_DEVICE_PATH, &fops, 0666, (void *)this);
-
-	/*ret = PWM_dev->init();
-	if (ret == OK) {
-		DEVICE_LOG("default PWM output device");
-		_primary_pwm_device = true;
-	}
-	else
-	{
-		printf("pwm device init failed\n");
-	}*/
-
 
 	// start the IO interface task
 	_task = px4_task_spawn_cmd("ts7500io",

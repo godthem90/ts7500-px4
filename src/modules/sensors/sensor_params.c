@@ -1071,7 +1071,7 @@ PARAM_DEFINE_FLOAT(RC6_MIN, 1000);
  * @unit us
  * @group Radio Calibration
  */
-PARAM_DEFINE_FLOAT(RC6_TRIM, 1500);
+PARAM_DEFINE_FLOAT(RC6_TRIM, 1078);
 
 /**
  * RC Channel 6 Maximum
@@ -1886,7 +1886,7 @@ PARAM_DEFINE_INT32(RC_TH_USER, 1);
  * @max 18
  * @group Radio Calibration
  */
-PARAM_DEFINE_INT32(RC_MAP_ROLL, 0);
+PARAM_DEFINE_INT32(RC_MAP_ROLL, 3);
 
 /**
  * Pitch control channel mapping.
@@ -1899,7 +1899,7 @@ PARAM_DEFINE_INT32(RC_MAP_ROLL, 0);
  * @max 18
  * @group Radio Calibration
  */
-PARAM_DEFINE_INT32(RC_MAP_PITCH, 0);
+PARAM_DEFINE_INT32(RC_MAP_PITCH, 4);
 
 /**
  * Failsafe channel mapping.
@@ -1926,7 +1926,7 @@ PARAM_DEFINE_INT32(RC_MAP_FAILSAFE, 0);  //Default to throttle function
  * @max 18
  * @group Radio Calibration
  */
-PARAM_DEFINE_INT32(RC_MAP_THROTTLE, 0);
+PARAM_DEFINE_INT32(RC_MAP_THROTTLE, 6);
 
 /**
  * Yaw control channel mapping.
@@ -1939,7 +1939,7 @@ PARAM_DEFINE_INT32(RC_MAP_THROTTLE, 0);
  * @max 18
  * @group Radio Calibration
  */
-PARAM_DEFINE_INT32(RC_MAP_YAW, 0);
+PARAM_DEFINE_INT32(RC_MAP_YAW, 5);
 
 /**
  * Mode switch channel mapping.

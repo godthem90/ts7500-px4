@@ -53,6 +53,7 @@ public:
      */
     void set_cutoff_frequency(float sample_freq, float cutoff_freq);
 
+	void hack_set(float a1,float a2,float b0,float b1,float b2);
     /**
      * Add a new raw value to the filter
      *

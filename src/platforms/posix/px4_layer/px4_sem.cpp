@@ -51,11 +51,15 @@
 
 int px4_sem_init(px4_sem_t *s, int pshared, unsigned value)
 {
+	printf("1\n");
 	// We do not used the process shared arg
 	(void)pshared;
 	s->value = value;
+	printf("2\n");
 	pthread_cond_init(&(s->wait), NULL);
+	printf("3\n");
 	pthread_mutex_init(&(s->lock), NULL);
+	printf("4\n");
 
 	return 0;
 }

@@ -55,6 +55,26 @@
 #include <uORB/topics/actuator_controls.h>
 
 #include "ts7500io_virtual_firmware.h"
+#include "sbus.h"
+
+#define PWM_BASE_ADDR	0x50
+
+void ts7500_pwm_init()
+{
+	sbuslock();
+	sbus_poke16(0x50, 20000);
+	sbus_poke16(0x52, 20000);
+	sbus_poke16(0x54, 20000);
+	sbus_poke16(0x56, 20000);
+	sbusunlock();
+}
+
+void ts7500_servo_set(unsigned idx, uint16_t val)
+{
+	sbuslock();
+	sbus_poke16(PWM_BASE_ADDR + 2*idx, val);
+	sbusunlock();
+}
 
 /*
  * Maximum interval in us before FMU signal is considered lost
@@ -224,6 +244,7 @@ mixer_tick(void)
 	 */
 	if (source == MIX_FAILSAFE) {
 
+
 		/* copy failsafe values to the servo outputs */
 		for (unsigned i = 0; i < PX4IO_SERVO_COUNT; i++) {
 			r_page_servos[i] = r_page_servo_failsafe[i];
@@ -240,21 +261,10 @@ mixer_tick(void)
 		unsigned mixed;
 
 		/* mix */
-
 		/* poor mans mutex */
 		in_mixer = true;
 		mixed = mixer_group.mix(&outputs[0], PX4IO_SERVO_COUNT, &r_mixer_limits);
 		in_mixer = false;
-
-		/*printf("servo num : %d\n",mixed);
-		printf("output 1 val : %lf\n",outputs[0]);
-		printf("output 2 val : %lf\n",outputs[1]);
-		printf("output 3 val : %lf\n",outputs[2]);
-		printf("output 4 val : %lf\n",outputs[3]);
-		printf("output 5 val : %lf\n",outputs[4]);
-		printf("output 6 val : %lf\n",outputs[5]);
-		printf("output 7 val : %lf\n",outputs[6]);
-		printf("output 8 val : %lf\n",outputs[7]);*/
 
 		/* the pwm limit call takes care of out of band errors */
 		pwm_limit_calc(should_arm, should_arm_nothrottle, mixed, r_setup_pwm_reverse, r_page_servo_disarmed,
@@ -271,14 +281,6 @@ mixer_tick(void)
 			r_page_actuators[i] = FLOAT_TO_REG(outputs[i]);
 		}
 
-		/*printf("actuator 1 val : %d, servo 1 val : %d\n",r_page_actuators[0], r_page_servos[0]);
-		printf("actuator 2 val : %d, servo 2 val : %d\n",r_page_actuators[1], r_page_servos[1]);
-		printf("actuator 3 val : %d, servo 3 val : %d\n",r_page_actuators[2], r_page_servos[2]);
-		printf("actuator 4 val : %d, servo 4 val : %d\n",r_page_actuators[3], r_page_servos[3]);
-		printf("actuator 5 val : %d, servo 5 val : %d\n",r_page_actuators[4], r_page_servos[4]);
-		printf("actuator 6 val : %d, servo 6 val : %d\n",r_page_actuators[5], r_page_servos[5]);
-		printf("actuator 7 val : %d, servo 7 val : %d\n",r_page_actuators[6], r_page_servos[6]);
-		printf("actuator 8 val : %d, servo 8 val : %d\n",r_page_actuators[7], r_page_servos[7]);*/
 	}
 
 	/* set arming */
@@ -310,6 +312,8 @@ mixer_tick(void)
 	    && !(r_setup_arming & PX4IO_P_SETUP_ARMING_LOCKDOWN)) {
 		/* update the servo outputs. */
 		for (unsigned i = 0; i < PX4IO_SERVO_COUNT; i++) {
+			uint16_t control = (uint16_t)((int)((REG_TO_FLOAT(r_page_actuators[i]) + 1.0f) * 20000) + 20000);
+			ts7500_servo_set(i, control);
 			//up_pwm_servo_set(i, r_page_servos[i]);
 			//printf("servo set to %d!!\n",r_page_servos[i]);
 		}
@@ -318,11 +322,14 @@ mixer_tick(void)
 					  || (r_setup_arming & PX4IO_P_SETUP_ARMING_LOCKDOWN))) {
 		/* set the disarmed servo outputs. */
 		for (unsigned i = 0; i < PX4IO_SERVO_COUNT; i++) {
+			ts7500_servo_set(i, 0);
 			//up_pwm_servo_set(i, r_page_servo_disarmed[i]);
 			/* copy values into reporting register */
-			r_page_servos[i] = r_page_servo_disarmed[i];
+			//r_page_servos[i] = r_page_servo_disarmed[i];
+			r_page_actuators[i] = 0;
 		}
 	}
+
 }
 
 static int
@@ -339,7 +346,6 @@ mixer_callback(uintptr_t handle,
 	case MIX_FMU:
 		if (control_index < PX4IO_CONTROL_CHANNELS && control_group < PX4IO_CONTROL_GROUPS) {
 			control = REG_TO_FLOAT(r_page_controls[CONTROL_PAGE_INDEX(control_group, control_index)]);
-			//printf("r_page_conrols group - %d, index - %d : %f\n", control_group, control_index, control);
 			break;
 		}
 
@@ -397,25 +403,26 @@ mixer_callback(uintptr_t handle,
 		control = -1.0f;
 	}
 
+	// jjh hack
 	/* motor spinup phase - lock throttle to zero */
-	if ((pwm_limit.state == PWM_LIMIT_STATE_RAMP) || (should_arm_nothrottle && !should_arm)) {
+	/*if ((pwm_limit.state == PWM_LIMIT_STATE_RAMP) || (should_arm_nothrottle && !should_arm)) {
 		if (control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE &&
 		    control_index == actuator_controls_s::INDEX_THROTTLE) {
-			/* limit the throttle output to zero during motor spinup,
-			 * as the motors cannot follow any demand yet
-			 */
+			// limit the throttle output to zero during motor spinup,
+			// as the motors cannot follow any demand yet
 			control = 0.0f;
 		}
-	}
+	}*/
 
+	// jjh hack
 	/* only safety off, but not armed - set throttle as invalid */
-	if (should_arm_nothrottle && !should_arm) {
+	/*if (should_arm_nothrottle && !should_arm) {
 		if (control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE &&
 		    control_index == actuator_controls_s::INDEX_THROTTLE) {
-			/* mark the throttle as invalid */
+			// mark the throttle as invalid
 			control = NAN_VALUE;
 		}
-	}
+	}*/
 
 	return 0;
 }

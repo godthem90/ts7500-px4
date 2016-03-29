@@ -230,11 +230,6 @@ MultirotorMixer::mix(float *outputs, unsigned space, uint16_t *status_reg)
 	float		min_out = 0.0f;
 	float		max_out = 0.0f;
 
-	/*printf("roll(0) : %f\n", roll);
-	printf("pitch(1) : %f\n", pitch);
-	printf("yaw(2) : %f\n", yaw);
-	printf("thrust(3) : %f\n", thrust);*/
-
 	// clean register for saturation status flags
 	if (status_reg != NULL) {
 		(*status_reg) = 0;
@@ -262,7 +257,6 @@ MultirotorMixer::mix(float *outputs, unsigned space, uint16_t *status_reg)
 		}
 
 		outputs[i] = out;
-		//printf("first outputs[%d] in mixer : %f\n", i, outputs[i]);
 	}
 
 	float boost = 0.0f;				// value added to demanded thrust (can also be negative)
@@ -369,7 +363,6 @@ MultirotorMixer::mix(float *outputs, unsigned space, uint16_t *status_reg)
 			     thrust + boost;
 
 		outputs[i] = constrain(_idle_speed + (outputs[i] * (1.0f - _idle_speed)), _idle_speed, 1.0f);
-		//printf("second outputs[%d] in mixer : %f\n", i, outputs[i]);
 	}
 
 	return _rotor_count;
