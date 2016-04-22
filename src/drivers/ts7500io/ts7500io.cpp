@@ -328,6 +328,8 @@ private:
 	 */
 	int			io_publish_pwm_outputs();
 
+	int			pwm_init();
+
 	/**
 	 * Send mixer definition text to IO
 	 */
@@ -1007,6 +1009,11 @@ int RC_Driver::io_reg_set(uint8_t page, uint8_t offset, const uint16_t *values, 
 
 	//int ret =  _interface->write((page << 8) | offset, (void *)values, num_values);
 
+	
+	// jjh
+	/*for( int i = 0; i < num_values; i++ )
+		printf("temp[%d] = %d;\n",i, values[i]);
+	printf("io_reg_set(%d, %d, temp, %d);\n",page,offset,num_values);*/
 	set_virtual_register(page, offset, values, num_values);
 
 	/*if (ret != (int)num_values) {
@@ -1642,6 +1649,96 @@ int RC_Driver::io_set_arming_state()
 	return 0;
 }
 
+int RC_Driver::pwm_init()
+{
+	int ret = 0;
+	unsigned alt_rate = 0;
+	//uint32_t alt_channel_groups = 0;
+	//bool alt_channels_set = false;
+	uint32_t set_mask = 0;
+	//unsigned group = 0;
+	unsigned long channels = 0;
+	unsigned single_ch = 0;
+	//unsigned pwm_value = 0;
+
+	// [jjh] param value [channels] [alt_rate] [group]
+	channels = 1234;
+	while ((single_ch = channels % 10)) {
+
+		set_mask |= 1 << (single_ch - 1);
+		channels /= 10;
+	}
+	alt_rate = 400;
+
+	if( alt_rate > 0 )
+		io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_ALTRATE, alt_rate);
+
+	if (set_mask > 0)
+	{
+		/* blindly clear the PWM update alarm - might be set for some other reason */
+		io_reg_set(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_ALARMS, PX4IO_P_STATUS_ALARMS_PWM_ERROR);
+
+		/* attempt to set the rate map */
+		io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_RATES, set_mask);
+
+		/* check that the changes took */
+		uint16_t alarms = io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_ALARMS);
+
+		if (alarms & PX4IO_P_STATUS_ALARMS_PWM_ERROR) {
+			ret = -EINVAL;
+			io_reg_set(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_ALARMS, PX4IO_P_STATUS_ALARMS_PWM_ERROR);
+		}
+	}
+
+	/* assign alternate rate to channel groups */
+	/*if (alt_channels_set) {
+		uint32_t mask = 0;
+
+		for (group = 0; group < 32; group++) {
+			if ((1 << group) & alt_channel_groups) {
+				uint32_t group_mask;
+
+				ret = ioctl(fd, PWM_SERVO_GET_RATEGROUP(group), (unsigned long)&group_mask);
+
+				if (ret != OK) {
+					err(1, "PWM_SERVO_GET_RATEGROUP(%u)", group);
+				}
+
+				mask |= group_mask;
+			}
+		}
+		ioctl(fd, PWM_SERVO_SET_SELECT_UPDATE_RATE, mask);
+	}*/
+
+	// [jjh] param value [disarm]
+	struct pwm_output_values pwm_values;
+	memset(&pwm_values, 0, sizeof(pwm_values));
+	pwm_values.channel_count = _max_actuators;
+	for (unsigned i = 0; i < _max_actuators; i++) {
+		if (set_mask & 1 << i)
+			pwm_values.values[i] = 900;
+	}
+	io_reg_set(PX4IO_PAGE_DISARMED_PWM, 0, pwm_values.values, pwm_values.channel_count);
+
+	memset(&pwm_values, 0, sizeof(pwm_values));
+	pwm_values.channel_count = _max_actuators;
+	for (unsigned i = 0; i < _max_actuators; i++) {
+		if (set_mask & 1 << i)
+			pwm_values.values[i] = 1100;
+	}
+	io_reg_set(PX4IO_PAGE_CONTROL_MIN_PWM, 0, pwm_values.values, pwm_values.channel_count);
+
+	memset(&pwm_values, 0, sizeof(pwm_values));
+	pwm_values.channel_count = _max_actuators;
+	for (unsigned i = 0; i < _max_actuators; i++) {
+		if (set_mask & 1 << i)
+			pwm_values.values[i] = 1950;
+	}
+	io_reg_set(PX4IO_PAGE_CONTROL_MAX_PWM, 0, pwm_values.values, pwm_values.channel_count);
+
+	return ret;
+}
+
 int RC_Driver::mixer_send(const char *buf, unsigned buflen, unsigned retries)
 {
 	/* get debug level */
@@ -1895,15 +1992,18 @@ int RC_Driver::task_main()
 	/* Fetch initial flight termination circuit breaker state */
 	_cb_flighttermination = circuit_breaker_enabled("CBRK_FLIGHTTERM", CBRK_FLIGHTTERM_KEY);
 
+	printf("initializing pwm...\n");
+	pwm_init();
+
+	printf("loading mixer...\n");
+	mixer_load("quad_x.main.mix");
+
 	/* poll descriptor */
 	px4_pollfd_struct_t fds[1] = {};
 	fds[0].fd = _t_actuator_controls_0;
 	fds[0].events = POLLIN;
 
 	_param_update_force = true;
-
-	printf("loading mixer...\n");
-	mixer_load("quad_x.main.mix");
 
 	while(!_task_should_exit)
 	{

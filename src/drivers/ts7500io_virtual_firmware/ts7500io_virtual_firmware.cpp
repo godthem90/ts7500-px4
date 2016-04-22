@@ -332,7 +332,7 @@ void print_page()
 	printf("\n");
 	
 	printf("r_setup_arming : \n");
-	for( i = 0; i < 5; i++ )
+	for( i = 0; i < 11; i++ )
 	{
 		if(r_setup_arming & (1 << i))
 			printf("\t%s SET!\n",r_setup_arming_table[i]);
@@ -356,7 +356,22 @@ void print_page()
 	
 	printf("r_page_actuators(actual pwm out) : \n");
 	for( i = 0; i < PX4IO_SERVO_COUNT; i++ )
-		printf("\t%d",(uint16_t)((int)((REG_TO_FLOAT(r_page_actuators[i]) + 1.0f) * 10000) + 20000));
+		printf("\t%d",r_page_actuators[i]);
+	printf("\n\n");
+
+	printf("r_page_servo_disarmed : \n");
+	for( i = 0; i < PX4IO_SERVO_COUNT; i++ )
+		printf("\t%d",r_page_servo_disarmed[i]);
+	printf("\n\n");
+
+	printf("r_page_servo_control_min : \n");
+	for( i = 0; i < PX4IO_SERVO_COUNT; i++ )
+		printf("\t%d",r_page_servo_control_min[i]);
+	printf("\n\n");
+
+	printf("r_page_servo_control_max : \n");
+	for( i = 0; i < PX4IO_SERVO_COUNT; i++ )
+		printf("\t%d",r_page_servo_control_max[i]);
 	printf("\n\n");
 
 }

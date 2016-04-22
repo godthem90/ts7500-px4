@@ -14,6 +14,7 @@ set(CMAKE_TOOLCHAIN_FILE ${CMAKE_SOURCE_DIR}/cmake/toolchains/Toolchain-arm-oabi
 set(config_module_list
 	drivers/device
 	drivers/ts7500io
+	drivers/jjh_debug	# for debug use only
 	drivers/ts_mpu9250
 	drivers/ts7500io_virtual_firmware
 	platforms/common

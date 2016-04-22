@@ -312,8 +312,7 @@ mixer_tick(void)
 	    && !(r_setup_arming & PX4IO_P_SETUP_ARMING_LOCKDOWN)) {
 		/* update the servo outputs. */
 		for (unsigned i = 0; i < PX4IO_SERVO_COUNT; i++) {
-			uint16_t control = (uint16_t)((int)((REG_TO_FLOAT(r_page_actuators[i]) + 1.0f) * 20000) + 20000);
-			ts7500_servo_set(i, control);
+			ts7500_servo_set(i, r_page_servos[i]);
 			//up_pwm_servo_set(i, r_page_servos[i]);
 			//printf("servo set to %d!!\n",r_page_servos[i]);
 		}
@@ -322,11 +321,10 @@ mixer_tick(void)
 					  || (r_setup_arming & PX4IO_P_SETUP_ARMING_LOCKDOWN))) {
 		/* set the disarmed servo outputs. */
 		for (unsigned i = 0; i < PX4IO_SERVO_COUNT; i++) {
-			ts7500_servo_set(i, 0);
+			ts7500_servo_set(i, r_page_servo_disarmed[i]);
 			//up_pwm_servo_set(i, r_page_servo_disarmed[i]);
 			/* copy values into reporting register */
-			//r_page_servos[i] = r_page_servo_disarmed[i];
-			r_page_actuators[i] = 0;
+			r_page_servos[i] = r_page_servo_disarmed[i];
 		}
 	}
 

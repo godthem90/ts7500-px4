@@ -219,6 +219,9 @@ volatile uint16_t	r_page_setup[] = {
 	0,
 	0,
 	0,
+	0,
+	0,
+	0,
 	0
 };
 
